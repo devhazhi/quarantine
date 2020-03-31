@@ -93,3 +93,10 @@ obj/**
 obj/
 bin/**
 
+service/src/service/.idea/.idea.service.dir/.idea/encodings.xml
+service/src/service/.idea/.idea.service.dir/.idea/contentModel.xml
+service/src/service/.idea/.idea.service.dir/.idea/indexLayout.xml
+service/src/service/.idea/.idea.service.dir/.idea/misc.xml
+service/src/service/.idea/.idea.service.dir/.idea/modules.xml
+service/src/service/.idea/.idea.service.dir/.idea/projectSettingsUpdater.xml
+service/src/service/.idea/.idea.service.dir/.idea/workspace.xml
