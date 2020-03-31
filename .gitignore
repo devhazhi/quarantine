@@ -83,3 +83,13 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
+
+obj/**
+*.ide-wal
+*.ide
+*.lock
+*.ide-shm
+.vs/address_service/v16/.suo
+obj/
+bin/**
+
