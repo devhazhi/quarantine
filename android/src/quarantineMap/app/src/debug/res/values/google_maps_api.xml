@@ -1,0 +1,24 @@
+<resources>
+    <!--
+    TODO: Before you run your application, you need a Google Maps API key.
+
+    To get one, follow this link, follow the directions and press "Create" at the end:
+
+    https://console.developers.google.com/flows/enableapi?apiid=maps_android_backend&keyType=CLIENT_SIDE_ANDROID&r=FC:E9:69:77:55:EE:80:34:D2:B3:E9:A0:61:A6:1B:F6:0F:46:9A:31%3Bsphaera.ru.qurantinemap
+
+    You can also add your credentials to an existing key, using these values:
+
+    Package name:
+    sphaera.ru.qurantinemap
+
+    SHA-1 certificate fingerprint:
+    FC:E9:69:77:55:EE:80:34:D2:B3:E9:A0:61:A6:1B:F6:0F:46:9A:31
+
+    Alternatively, follow the directions here:
+    https://developers.google.com/maps/documentation/android/start#get-key
+
+    Once you have your key (it starts with "AIza"), replace the "google_maps_key"
+    string in this file.
+    -->
+    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyB6WmwabXm9b7D63dkH5wibXVfABtA9J_E</string>
+</resources>
