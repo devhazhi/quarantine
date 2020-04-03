@@ -329,7 +329,7 @@ insert into  (device_id, token)
                                                 { "device_id", device_id }
                                             });
                     if (_cachePhonePerson.Count != 0)
-                        _cacheDevicePerson[device_id].Token = token;
+                        _cacheDevicePerson[device_id].Person.Token = token;
                 }
             }
             catch (Exception e)
