@@ -12,8 +12,6 @@ namespace service.Models
         public DateTime? LastUpdate { get; set; }
         public bool HasQuarantineStop => Person.QuarantineStopUnix < (long)DateTime.UtcNow.Subtract(UnixStart).TotalSeconds;
 
-        public string Token { get; set; }
-
         public readonly static DateTime UnixStart = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     }
@@ -22,6 +20,7 @@ namespace service.Models
         public Location Zone { get; set; }    
         public string Name { get; set; }
         public long QuarantineStopUnix { get; set; }
+        public string Token { get; set; }
     }    
    
     public class Location

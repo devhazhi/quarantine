@@ -1,0 +1,138 @@
+warning: LF will be replaced by CRLF in .gitignore.
+The file will have its original line endings in your working directory
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mindex 57ae315..40a19ec 100644[m
+[1m--- a/.gitignore[m
+[1m+++ b/.gitignore[m
+[36m@@ -91,3 +91,4 @@[m [mservice/.idea/.idea.service.dir/.idea/misc.xml[m
+ service/.idea/.idea.service.dir/.idea/modules.xml[m
+ service/.idea/.idea.service.dir/.idea/projectSettingsUpdater.xml[m
+ service/.idea/.idea.service.dir/.idea/workspace.xml[m
+[32m+[m[32mservice/.vs/service/v16/.suo[m
+[1mdiff --git a/service/Controllers/DeviceController.cs b/service/Controllers/DeviceController.cs[m
+[1mindex 0fe6ab9..b289951 100644[m
+[1m--- a/service/Controllers/DeviceController.cs[m
+[1m+++ b/service/Controllers/DeviceController.cs[m
+[36m@@ -111,7 +111,7 @@[m [mnamespace service.Controllers[m
+                 {[m
+                     IsOk = true,[m
+                     Topics = _repository.GetNotifications()?.[m
+[31m-                        Where(w => !w.EndTime.HasValue || w.EndTime.Value.Date < DateTime.UtcNow.Date).Select(a => a.Name).ToArray()[m
+[32m+[m[32m                        Where(w => !w.EndTime.HasValue || w.EndTime.Value.Date < DateTime.UtcNow.Date).Select(a => a.Topic).Where(w=>w?.Length >0).Distinct().ToArray()[m
+                 };[m
+             }[m
+             catch (Exception e)[m
+[36m@@ -137,7 +137,7 @@[m [mnamespace service.Controllers[m
+             }[m
+             catch (Exception e)[m
+             {[m
+[31m-                return new NotificationSubscribeInfoResponce() { IsOk = false, Error = e.Message };[m
+[32m+[m[32m                return new Responce() { IsOk = false, Error = e.Message };[m
+             }[m
+         }[m
+ [m
+[1mdiff --git a/service/Models/DbProvider.cs b/service/Models/DbProvider.cs[m
+[1mindex c31aa00..6254d85 100644[m
+[1m--- a/service/Models/DbProvider.cs[m
+[1m+++ b/service/Models/DbProvider.cs[m
+[36m@@ -107,9 +107,11 @@[m [mBEGIN[m
+     [quarantine_location].EnvelopeCenter().Long as lon,[m
+     p.quarantine_stop,[m
+     p.phone,[m
+[31m-    pd.device_id[m
+[32m+[m[32m    pd.device_id,[m
+[32m+[m[32m    dnt.token[m
+       FROM Person p[m
+       left join [PersonDevice] pd on pd.[phone] = p.phone[m
+[32m+[m[32m      left join DeviceNotificationToken dnt on dnt.device_id = pd.device_id[m
+ END[m
+ ", (dr) =>[m
+                          {[m
+[36m@@ -242,7 +244,8 @@[m [mEND[m
+                     Lon = (double)dr[2],[m
+                     Radius = Radius[m
+                 },[m
+[31m-                QuarantineStopUnix = !dr.IsDBNull(3) ? (long)dr.GetDateTime(3).Subtract(PersonCacheObject.UnixStart).TotalSeconds : 0[m
+[32m+[m[32m                QuarantineStopUnix = !dr.IsDBNull(3) ? (long)dr.GetDateTime(3).Subtract(PersonCacheObject.UnixStart).TotalSeconds : 0,[m
+[32m+[m[32m                Token = dr.GetNullableString(6)[m
+             };[m
+         }[m
+ [m
+[36m@@ -259,9 +262,11 @@[m [mEND[m
+     [quarantine_location].EnvelopeCenter().Long as lon,[m
+     p.quarantine_stop,[m
+     p.phone,[m
+[31m-    pd.device_id[m
+[32m+[m[32m    pd.device_id,[m
+[32m+[m[32m    dnt.token[m
+       FROM Person p[m
+       left join [PersonDevice] pd on pd.[phone] = p.phone[m
+[32m+[m[32m      left join DeviceNotificationToken dnt on dnt.device_id = pd.device_id[m
+     where (@phone is null or p.phone = @phone )[m
+ and (@device_id is null or pd.device_id = @device_id)[m
+ ", (dr) =>[m
+[36m@@ -356,14 +361,20 @@[m [mBEGIN[m
+ 	  Name,[m
+ 	  start_time,[m
+ 	  end_time, [m
+[31m-	  interval [m
+[32m+[m	[32m  interval,[m
+[32m+[m[32m      topic,[m
+[32m+[m[32m      message_template,[m
+[32m+[m[32m      type[m
+   from NotificationSubscribe[m
+   where (end_time is null or end_time <GETUTCDATE());[m
+ End[m
+ ", (dr) => new NotificationSubscribe() { Name =dr.GetString(0),[m
+                          StartTime = dr.GetNullableDateTime(1),[m
+                          EndTime = dr.GetNullableDateTime(2),[m
+[31m-                         Interval =TimeSpan.FromMinutes( dr.GetNullableInt32(3) ?? 30)}[m
+[32m+[m[32m                         Interval =TimeSpan.FromMinutes( dr.GetNullableInt32(3) ?? 30),[m
+[32m+[m[32m                         Topic = dr.GetNullableString(4),[m
+[32m+[m[32m                         MessageTemplate = dr.GetNullableString(5),[m
+[32m+[m[32m                         NotificationType = (NotificationTypeEnum)( dr.GetNullableInt32(6) ?? 0)}[m
+                          , parameters: new SwParameters[m
+                                             {[m
+                                                 { "@lastTime", LastPersonUpdates },[m
+[1mdiff --git a/service/Models/NotificationInfo.cs b/service/Models/NotificationInfo.cs[m
+[1mindex f1f7291..66760e2 100644[m
+[1m--- a/service/Models/NotificationInfo.cs[m
+[1m+++ b/service/Models/NotificationInfo.cs[m
+[36m@@ -16,5 +16,16 @@[m [mnamespace service.Models[m
+         public DateTime? StartTime { get; set; }[m
+         public DateTime? EndTime { get; set; }[m
+         public TimeSpan? Interval { get; set; }[m
+[32m+[m[32m        public string MessageTemplate { get; internal set; }[m
+[32m+[m[32m        public string Topic { get; internal set; }[m
+[32m+[m[32m        public NotificationTypeEnum NotificationType { get; internal set; }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public enum NotificationTypeEnum[m
+[32m+[m[32m    {[m
+[32m+[m[32m        Info,[m
+[32m+[m[32m        Warning,[m
+[32m+[m[32m        TakePhoto,[m
+[32m+[m[32m        QuarantineVioalation[m
+     }[m
+ }[m
+[1mdiff --git a/service/Models/PersonObject.cs b/service/Models/PersonObject.cs[m
+[1mindex 7bbb5f0..5b3e7b1 100644[m
+[1m--- a/service/Models/PersonObject.cs[m
+[1m+++ b/service/Models/PersonObject.cs[m
+[36m@@ -12,8 +12,6 @@[m [mnamespace service.Models[m
+         public DateTime? LastUpdate { get; set; }[m
+         public bool HasQuarantineStop => Person.QuarantineStopUnix < (long)DateTime.UtcNow.Subtract(UnixStart).TotalSeconds;[m
+ [m
+[31m-        public string Token { get; set; }[m
+[31m-[m
+         public readonly static DateTime UnixStart = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);[m
+ [m
+     }[m
+[36m@@ -22,6 +20,7 @@[m [mnamespace service.Models[m
+         public Location Zone { get; set; }    [m
+         public string Name { get; set; }[m
+         public long QuarantineStopUnix { get; set; }[m
+[32m+[m[32m        public string Token { get; set; }[m
+     }    [m
+    [m
+     public class Location[m

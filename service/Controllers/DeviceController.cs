@@ -111,7 +111,7 @@ namespace service.Controllers
                 {
                     IsOk = true,
                     Topics = _repository.GetNotifications()?.
-                        Where(w => !w.EndTime.HasValue || w.EndTime.Value.Date < DateTime.UtcNow.Date).Select(a => a.Name).ToArray()
+                        Where(w => !w.EndTime.HasValue || w.EndTime.Value.Date < DateTime.UtcNow.Date).Select(a => a.Topic).Where(w=>w?.Length >0).Distinct().ToArray()
                 };
             }
             catch (Exception e)
@@ -137,7 +137,7 @@ namespace service.Controllers
             }
             catch (Exception e)
             {
-                return new NotificationSubscribeInfoResponce() { IsOk = false, Error = e.Message };
+                return new Responce() { IsOk = false, Error = e.Message };
             }
         }
 

@@ -107,9 +107,11 @@ BEGIN
     [quarantine_location].EnvelopeCenter().Long as lon,
     p.quarantine_stop,
     p.phone,
-    pd.device_id
+    pd.device_id,
+    dnt.token
       FROM Person p
       left join [PersonDevice] pd on pd.[phone] = p.phone
+      left join DeviceNotificationToken dnt on dnt.device_id = pd.device_id
 END
 ", (dr) =>
                          {
@@ -242,7 +244,8 @@ END
                     Lon = (double)dr[2],
                     Radius = Radius
                 },
-                QuarantineStopUnix = !dr.IsDBNull(3) ? (long)dr.GetDateTime(3).Subtract(PersonCacheObject.UnixStart).TotalSeconds : 0
+                QuarantineStopUnix = !dr.IsDBNull(3) ? (long)dr.GetDateTime(3).Subtract(PersonCacheObject.UnixStart).TotalSeconds : 0,
+                Token = dr.GetNullableString(6)
             };
         }
 
@@ -259,9 +262,11 @@ END
     [quarantine_location].EnvelopeCenter().Long as lon,
     p.quarantine_stop,
     p.phone,
-    pd.device_id
+    pd.device_id,
+    dnt.token
       FROM Person p
       left join [PersonDevice] pd on pd.[phone] = p.phone
+      left join DeviceNotificationToken dnt on dnt.device_id = pd.device_id
     where (@phone is null or p.phone = @phone )
 and (@device_id is null or pd.device_id = @device_id)
 ", (dr) =>
@@ -356,14 +361,20 @@ BEGIN
 	  Name,
 	  start_time,
 	  end_time, 
-	  interval 
+	  interval,
+      topic,
+      message_template,
+      type
   from NotificationSubscribe
   where (end_time is null or end_time <GETUTCDATE());
 End
 ", (dr) => new NotificationSubscribe() { Name =dr.GetString(0),
                          StartTime = dr.GetNullableDateTime(1),
                          EndTime = dr.GetNullableDateTime(2),
-                         Interval =TimeSpan.FromMinutes( dr.GetNullableInt32(3) ?? 30)}
+                         Interval =TimeSpan.FromMinutes( dr.GetNullableInt32(3) ?? 30),
+                         Topic = dr.GetNullableString(4),
+                         MessageTemplate = dr.GetNullableString(5),
+                         NotificationType = (NotificationTypeEnum)( dr.GetNullableInt32(6) ?? 0)}
                          , parameters: new SwParameters
                                             {
                                                 { "@lastTime", LastPersonUpdates },
