@@ -69,7 +69,7 @@ public class SplashActivity extends AppCompatActivity implements DownloadCallbac
 
         Intent intent = null;
         if (po == null) {
-            intent = new Intent(SplashActivity.this, SighActivity.class);
+            intent = new Intent(SplashActivity.this, SignActivity.class);
         } else {
             intent = new Intent(SplashActivity.this, MapsActivity.class);
             intent.putExtra("dataPersonString", person);

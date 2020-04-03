@@ -20,7 +20,7 @@ import devcom.ru.qurantinemap.service.DownloadTask;
 import devcom.ru.qurantinemap.service.DownloadCallback;
 import devcom.ru.qurantinemap.service.ServiceProxy;
 
-public class SighActivity extends AppCompatActivity implements DownloadCallback<String> {
+public class SignActivity extends AppCompatActivity implements DownloadCallback<String> {
 
     private EditText edittext;
     private DownloadCallback<String> callback;
@@ -38,7 +38,7 @@ public class SighActivity extends AppCompatActivity implements DownloadCallback<
                 if(edittext.length() == 11){
                     TextView text = (TextView) findViewById(R.id.errorText);
                     text.setText("");
-                    AsyncTask<String, Integer, DownloadTask.Result> execute = new DownloadTask(callback)
+                    new DownloadTask(callback)
                             .execute(ServiceProxy.createDefault().getAddDevicePersonUrl(Long.parseLong(edittext.getText().toString())));
                 }
             }
@@ -47,7 +47,7 @@ public class SighActivity extends AppCompatActivity implements DownloadCallback<
 
     @Override
     public void updateFromDownload(String result) {
-        Responce res = ServiceProxy.createDefault().getTryResponce(result);
+        Responce res = ServiceProxy.createDefault().parseResponce(result);
         if(res != null && res.isOk != null && res.isOk) {
             AsyncTask<String, Integer, DownloadTask.Result> execute = new DownloadTask(callback)
                     .execute(ServiceProxy.createDefault().getPersonByDeviceUrl());
@@ -56,7 +56,7 @@ public class SighActivity extends AppCompatActivity implements DownloadCallback<
             PersonObject po = ServiceProxy.createDefault().parsePersonObject(result);
             Intent intent = null;
             if ( po != null) {
-                intent = new Intent(SighActivity.this, MapsActivity.class);
+                intent = new Intent(SignActivity.this, MapsActivity.class);
                 intent.putExtra("dataPersonString", result);
                 startActivity(intent);
             }

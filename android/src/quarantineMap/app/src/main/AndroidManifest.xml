@@ -49,7 +49,7 @@
             android:value="@string/default_notification_channel_id" />
         <!-- [END fcm_default_channel] -->
 
-        <activity android:name="devcom.ru.qurantinemap.SighActivity"></activity>
+        <activity android:name="devcom.ru.qurantinemap.SignActivity"></activity>
         <activity android:name="devcom.ru.qurantinemap.MapsActivity" />
 
         <activity

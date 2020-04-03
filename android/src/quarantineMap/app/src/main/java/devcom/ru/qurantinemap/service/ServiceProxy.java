@@ -33,11 +33,12 @@ public class ServiceProxy {
     public String getPersonByDeviceUrl()   {
         return _url +"GetPersonByDevice?device_id=" +deviceId;
     }
-
-    public PersonObject getPersonByDevice() throws IOException {
-        Optional<String> res = getRawResponse(getPersonByDeviceUrl());
-        return parsePersonObject(res.get());
+    public String getAddFileByDeviceUrl()   {
+        return _url +"AddFileByDevice";
     }
+
+
+
 
     public PersonObject parsePersonObject(String res) {
         try {
@@ -49,17 +50,12 @@ public class ServiceProxy {
         }
     }
 
-    public Responce AddDevicePerson(long phone) throws IOException {
-        Optional<String> res = getRawResponse(getAddDevicePersonUrl(phone));
-        return getTryResponce(res.get());
-    }
-
     public String getAddDevicePersonUrl(long phone) {
         String item = _url +"AddDevicePerson?phone="+ phone +"&device_id=" +deviceId;
         return item;
     }
 
-    public Responce getTryResponce(String res) {
+    public Responce parseResponce(String res) {
         try {
             Gson gson = new Gson();
             return gson.fromJson(res, Responce.class);
@@ -68,39 +64,12 @@ public class ServiceProxy {
         }
     }
 
-    public Responce AddLocation(LatLng latLng, int radius) throws IOException {
-        Optional<String> res = getRawResponse(getAddLocationUrl(latLng, radius));
-        return getTryResponce(res.get());
-    }
-
     public String getAddLocationUrl(LatLng latLng, int radius) {
         return _url +"AddLocation?device_id=" +deviceId +"&lat="+ latLng.latitude+"&lon="+ latLng.longitude+"&radius="+ radius;
     }
     public String getAddDeviceNotificationTokenUrl(String token) {
         String item = _url +"AddDevicePerson?device_id="+ deviceId +"&token=" +token;
         return item;
-    }
-
-    public Optional<String> getRawResponse(String url)
-            throws MalformedURLException, IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        try {
-            connection.setConnectTimeout(10000);
-            connection.setRequestMethod("GET");
-            connection.setDoInput(true);
-            Integer res =connection.getResponseCode();
-            if (res != 200) {
-                System.err.println("connection failed");
-                return Optional.empty();
-            }
-
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(connection.getInputStream(), Charset.forName("utf-8")))) {
-                return Optional.of(reader.lines().collect(Collectors.joining(System.lineSeparator())));
-            }
-        }finally {
-            connection.disconnect();
-        }
     }
 
 }

@@ -45,7 +45,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1;
     private final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 2;
     private AsyncTask<String, Integer, DownloadTask.Result> _lastExecute;
-    private PersonObject _data;
+    private PersonObject _personInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,11 +53,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
         try {
             String personString = getIntent().getStringExtra("dataPersonString");
-            _data = ServiceProxy.createDefault().parsePersonObject(personString);
-            Responce res = ServiceProxy.createDefault().getTryResponce(personString);
+            _personInfo = ServiceProxy.createDefault().parsePersonObject(personString);
+            Responce res = ServiceProxy.createDefault().parseResponce(personString);
             if (res != null) {
                 if (res.isOk != null && !res.isOk) {
-                    _data = null;
+                    _personInfo = null;
                     ShowMessage(res.error, Toast.LENGTH_LONG);
                 }
 
@@ -123,8 +123,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
         mMap.clear();
         mMap.setMinZoomPreference(15);
-        if(_data != null && _data.zone != null) {
-            _quarantineZona = mMap.addCircle(new CircleOptions().center(new LatLng(_data.zone.lat, _data.zone.lon)).radius(_data.zone.radius)
+        if(_personInfo != null && _personInfo.zone != null) {
+            _quarantineZona = mMap.addCircle(new CircleOptions().center(new LatLng(_personInfo.zone.lat, _personInfo.zone.lon)).radius(_personInfo.zone.radius)
                     .fillColor(Color.argb(50, 255, 0, 0)));
         }
         Located();
@@ -133,23 +133,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void Located() {
         if(mMap != null) {
             if (lastCoord != null) {
-                if (_quarantineLocation == null && _data != null && _data.zone != null) {
+                if (_quarantineLocation == null && _personInfo != null && _personInfo.zone != null) {
                     _quarantineLocation = new Location(lastCoord);
-                    _quarantineLocation.setLatitude(_data.zone.lat);
-                    _quarantineLocation.setLongitude(_data.zone.lon);
-                    _quarantineLocation.setAccuracy((int)_data.zone.radius);
+                    _quarantineLocation.setLatitude(_personInfo.zone.lat);
+                    _quarantineLocation.setLongitude(_personInfo.zone.lon);
+                    _quarantineLocation.setAccuracy((int)_personInfo.zone.radius);
                 }
                 String name ="Я";
-                if(_data != null && _data.name != null)
-                    name = _data.name;
+                if(_personInfo != null && _personInfo.name != null)
+                    name = _personInfo.name;
                 LatLng coord = new LatLng(lastCoord.getLatitude(), lastCoord.getLongitude());
                 if (_marker == null) {
                     _marker = mMap.addMarker(new MarkerOptions().position(coord).title("Я"));
                 } else _marker.setPosition(coord);
-                if (_quarantineLocation!= null && _quarantineLocation.distanceTo(lastCoord) > _data.zone.radius) {
+                if (_quarantineLocation!= null && _quarantineLocation.distanceTo(lastCoord) > _personInfo.zone.radius) {
                     _marker.setTitle("вернитесь зону карантина!!!");
                 } else _marker.setTitle(name);
-                if(_data!=null && _data.quarantineStopUnix > 0) {
+                if(_personInfo!=null && _personInfo.quarantineStopUnix > 0) {
                     String url = ServiceProxy.createDefault().getAddLocationUrl(_marker.getPosition(), (int) lastCoord.getAccuracy());
                     _lastExecute = new DownloadTask(this)
                             .execute(url);
@@ -203,7 +203,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void updateFromDownload(String result) {
-        Responce res = ServiceProxy.createDefault().getTryResponce(result);
+        Responce res = ServiceProxy.createDefault().parseResponce(result);
         if(res != null && res.isOk) {
             ShowMessage("Координаты переданы", Toast.LENGTH_SHORT);
         }
