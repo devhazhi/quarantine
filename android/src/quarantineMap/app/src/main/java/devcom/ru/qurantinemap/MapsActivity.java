@@ -1,4 +1,4 @@
-package sphaera.ru.qurantinemap;
+package devcom.ru.qurantinemap;
 
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -19,21 +19,19 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Handler;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import sphaera.ru.qurantinemap.data.DownloadTask;
+import devcom.ru.qurantinemap.api.models.PersonObject;
+import devcom.ru.qurantinemap.api.models.Responce;
+import devcom.ru.qurantinemap.service.DownloadTask;
+import devcom.ru.qurantinemap.service.DownloadCallback;
+import devcom.ru.qurantinemap.service.ServiceProxy;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener,
         DownloadCallback<String> {
@@ -153,7 +151,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 } else _marker.setTitle(name);
                 if(_data!=null && _data.quarantineStopUnix > 0) {
                     String url = ServiceProxy.createDefault().getAddLocationUrl(_marker.getPosition(), (int) lastCoord.getAccuracy());
-                    _lastExecute = new sphaera.ru.qurantinemap.data.DownloadTask(this)
+                    _lastExecute = new DownloadTask(this)
                             .execute(url);
                 }
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(coord));

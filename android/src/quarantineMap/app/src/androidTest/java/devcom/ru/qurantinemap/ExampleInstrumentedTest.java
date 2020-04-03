@@ -1,4 +1,4 @@
-package sphaera.ru.qurantinemap;
+package devcom.ru.qurantinemap;
 
 import android.content.Context;
 

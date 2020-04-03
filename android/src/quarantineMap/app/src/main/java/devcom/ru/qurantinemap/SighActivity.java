@@ -1,4 +1,4 @@
-package sphaera.ru.qurantinemap;
+package devcom.ru.qurantinemap;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -9,13 +9,16 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import sphaera.ru.qurantinemap.data.DownloadTask;
+import devcom.ru.qurantinemap.api.models.PersonObject;
+import devcom.ru.qurantinemap.api.models.Responce;
+import devcom.ru.qurantinemap.service.DownloadTask;
+import devcom.ru.qurantinemap.service.DownloadCallback;
+import devcom.ru.qurantinemap.service.ServiceProxy;
 
 public class SighActivity extends AppCompatActivity implements DownloadCallback<String> {
 

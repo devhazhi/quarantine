@@ -1,4 +1,4 @@
-package sphaera.ru.qurantinemap.data;
+package devcom.ru.qurantinemap.service;
 
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -12,11 +12,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSession;
-
-import sphaera.ru.qurantinemap.DownloadCallback;
 
 /**
  * Implementation of AsyncTask designed to fetch data from the network.

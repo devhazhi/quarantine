@@ -1,7 +1,5 @@
-package sphaera.ru.qurantinemap;
+package devcom.ru.qurantinemap;
 
-import android.Manifest;
-import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -10,19 +8,17 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.provider.Settings;
-import android.telephony.TelephonyManager;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 
-import java.io.IOException;
 import java.util.UUID;
 
-import sphaera.ru.qurantinemap.data.DownloadTask;
+import devcom.ru.qurantinemap.api.models.PersonObject;
+import devcom.ru.qurantinemap.service.DownloadTask;
+import devcom.ru.qurantinemap.service.DownloadCallback;
+import devcom.ru.qurantinemap.service.ServiceProxy;
 
-public class SplashActivity extends AppCompatActivity implements DownloadCallback<String>  {
+public class SplashActivity extends AppCompatActivity implements DownloadCallback<String> {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

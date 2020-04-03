@@ -1,4 +1,4 @@
-package sphaera.ru.qurantinemap;
+package devcom.ru.qurantinemap.service;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
@@ -6,15 +6,15 @@ import com.google.gson.Gson;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.sql.Time;
-import java.util.Date;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import devcom.ru.qurantinemap.api.models.PersonObject;
+import devcom.ru.qurantinemap.api.models.Responce;
 
 public class ServiceProxy {
     private final String _url;
@@ -33,6 +33,7 @@ public class ServiceProxy {
     public String getPersonByDeviceUrl()   {
         return _url +"GetPersonByDevice?device_id=" +deviceId;
     }
+
     public PersonObject getPersonByDevice() throws IOException {
         Optional<String> res = getRawResponse(getPersonByDeviceUrl());
         return parsePersonObject(res.get());
@@ -74,6 +75,10 @@ public class ServiceProxy {
 
     public String getAddLocationUrl(LatLng latLng, int radius) {
         return _url +"AddLocation?device_id=" +deviceId +"&lat="+ latLng.latitude+"&lon="+ latLng.longitude+"&radius="+ radius;
+    }
+    public String getAddDeviceNotificationTokenUrl(String token) {
+        String item = _url +"AddDevicePerson?device_id="+ deviceId +"&token=" +token;
+        return item;
     }
 
     public Optional<String> getRawResponse(String url)
