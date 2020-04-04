@@ -348,12 +348,12 @@ insert into  (device_id, token)
                 {
                     connection.Exec(
  @"
-Merge DeviceFile t
+Merge DeviceFile as t
 using (select @name, @device_id) as s (name, device_id)
 on  t.device_id = s.device_id and t.name = s.name 
 when not matched then
-insert into  (device_id, name, recieved)
-     values(s.device_id, s.name, GETUTCNOW())
+insert (device_id, name, recieved)
+     values(s.device_id, s.name, GETUTCDATE());
                                     ", parameters: new SwParameters
                                             {
                                                 { "name", name },

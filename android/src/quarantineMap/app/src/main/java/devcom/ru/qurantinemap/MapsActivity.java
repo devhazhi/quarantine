@@ -5,7 +5,9 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -25,8 +27,19 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.provider.MediaStore;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.util.Base64;
+
+import devcom.ru.qurantinemap.api.models.DeviceFile;
 import devcom.ru.qurantinemap.api.models.NotificationSubscribeResponce;
 import devcom.ru.qurantinemap.api.models.PersonObject;
 import devcom.ru.qurantinemap.api.models.Responce;
@@ -39,7 +52,7 @@ import devcom.ru.qurantinemap.service.ServiceProxy;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener,
         NetworkInfoCallback {
-
+    static final int REQUEST_IMAGE_CAPTURE = 1;
     private GoogleMap mMap;
     private Location lastCoord;
     private Circle _quarantineZona;
@@ -56,6 +69,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        ImageButton btnAddPhoto = (ImageButton) findViewById(R.id.btnAddPhoto);
+        btnAddPhoto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+                }
+            }
+        });
         serviceProxy = new ServiceProxy(this);
         try {
             String personString = getIntent().getStringExtra("dataPersonString");
@@ -243,6 +266,39 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         return networkInfo;
+    }
+
+    @Override
+    protected void onActivityResult(final int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            Bundle extras = data.getExtras();
+            byte[] dat =extras.getByteArray("data");
+            Bitmap imageBitmap =  (Bitmap)extras.get("data");
+            ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+            imageBitmap.compress(Bitmap.CompressFormat.JPEG, 50,outStream );
+            // JPEG file type = 1
+            serviceProxy.requestAddDeviceFileTask(
+                    Base64.getEncoder().encodeToString(outStream.toByteArray()), 1,
+                    new ResultCallback() {
+                        @Override
+                        public void complete(RequestResult requestResult) {
+                            if(requestResult == null) return;
+                            Responce res= Responce.tryFromJson(requestResult.resultValue);
+                            if(res == null || res.isOk == null) {
+                                String exceptionMessage = "";
+                                if(requestResult.exception != null)
+                                    exceptionMessage = requestResult.exception.getMessage();
+                                ShowMessage("Ошибка передачи фото: " +exceptionMessage, Toast.LENGTH_LONG);
+                            }
+                            else if(!res.isOk) ShowMessage("Ошибка передачи файла: "
+                                    + res.error, Toast.LENGTH_LONG);
+                            else {
+                                ShowMessage("Фото успешно передано", Toast.LENGTH_LONG);
+                            }
+                        }
+                    });
+
+        }
     }
 
 }

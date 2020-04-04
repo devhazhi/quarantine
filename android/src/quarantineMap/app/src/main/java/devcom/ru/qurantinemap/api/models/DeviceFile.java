@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 
 public class DeviceFile {
     public String deviceId;
-    public byte[] data;
+    public String data;
     public int fileType;
     public String tryToJson(){
         try {

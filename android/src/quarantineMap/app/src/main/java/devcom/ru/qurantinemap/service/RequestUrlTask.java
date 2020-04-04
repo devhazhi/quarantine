@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -122,9 +123,12 @@ public class RequestUrlTask extends AsyncTask<String, Integer,  RequestResult> {
             }
             else{
                 connection.setRequestMethod("POST");
-                // Already true by default but setting just in case; needs to be true since this request
-                // is carrying an input (response) body.
                 connection.setDoOutput(true);
+                connection.setDoInput(true);
+                connection.setUseCaches(false);
+                connection.setChunkedStreamingMode(1024);
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setRequestProperty("Accept", "application/json");
                 writeStream(body, connection.getOutputStream());
             }
             // Open communications link (network traffic occurs here).
@@ -183,6 +187,7 @@ public class RequestUrlTask extends AsyncTask<String, Integer,  RequestResult> {
         try (Writer writer1 = writer = new OutputStreamWriter(stream, "UTF-8")) {
             writer.write(data);
             writer.flush();
+            writer.close();
         }
     }
 }

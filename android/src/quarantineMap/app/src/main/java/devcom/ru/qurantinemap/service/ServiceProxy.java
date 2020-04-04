@@ -40,7 +40,7 @@ public class ServiceProxy {
 
     private void initDefaultUrl() {
         String host="dmhazhi-001-site1.dtempurl.com";
-        //host="192.168.7.3:5000";
+       // host="192.168.7.3:5000";
         _url = "http://"+host+"/api/v1/Device/";
     }
 
@@ -59,9 +59,14 @@ public class ServiceProxy {
     }
 
 
-    public AsyncTask<String, Integer, RequestResult> requestAddDeviceFileTask(@NonNull DeviceFile deviceFile,
+    public AsyncTask<String, Integer, RequestResult> requestAddDeviceFileTask(@NonNull String bytes,
+                                                                                int fileType,
                                                                                 ResultCallback personObjectResultCallback) {
-        return new RequestUrlTask(networkInfoCallback, personObjectResultCallback, new Gson().toJson(deviceFile))
+        DeviceFile df = new DeviceFile();
+        df.deviceId=deviceId;
+        df.data =bytes;
+        df.fileType= fileType;
+        return new RequestUrlTask(networkInfoCallback, personObjectResultCallback, df.tryToJson())
                 .execute(_url +"AddFileByDevice");
     }
     public AsyncTask<String, Integer, RequestResult> requestAddDevicePersonTask(long phone,
