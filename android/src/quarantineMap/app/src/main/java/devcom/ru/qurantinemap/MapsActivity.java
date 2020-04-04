@@ -146,7 +146,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     name = _personInfo.name;
                 LatLng coord = new LatLng(lastCoord.getLatitude(), lastCoord.getLongitude());
                 if (_marker == null) {
-                    _marker = mMap.addMarker(new MarkerOptions().position(coord).title("Я"));
+                    _marker = mMap.addMarker(new MarkerOptions().position(coord).title(name));
                 } else _marker.setPosition(coord);
                 setTitleMarker(name);
                 sendLocation();

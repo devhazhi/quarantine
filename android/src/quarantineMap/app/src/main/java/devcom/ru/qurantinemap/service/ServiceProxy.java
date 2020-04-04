@@ -40,7 +40,7 @@ public class ServiceProxy {
 
     private void initDefaultUrl() {
         String host="dmhazhi-001-site1.dtempurl.com";
-        //host="192.168.1.3:5000";
+        //host="192.168.7.3:5000";
         _url = "http://"+host+"/api/v1/Device/";
     }
 

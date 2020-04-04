@@ -11,7 +11,6 @@ using System.Configuration;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
-
 namespace service.Controllers
 {    
     [ApiController]
@@ -22,7 +21,7 @@ namespace service.Controllers
 
         public DeviceController(IConfiguration configuration){
            Config = new ConfigWrap(configuration);
-            _repository = Config.Repository;
+            _repository = Config.Repository;           
         }
 
         public ConfigWrap Config { get; }
@@ -30,12 +29,12 @@ namespace service.Controllers
         private IDataRepository _repository;
 
         [HttpGet]
-        public ActionResult<PersonObject> GetPersonByDevice(string device_id)
+        public async Task<ActionResult<PersonObject>> GetPersonByDevice(string device_id)
         {
             try
             {
-                var person = _repository.GetPerson(device_id: device_id);
-                if (person != null && person.HasQuarantineStop == false) return person.Person;
+                var person = await _repository.GetPerson(device_id: device_id);
+                if (person != null && person.HasQuarantineStop == false) return Ok(person.Person);
                 return null;
             }
             catch (Exception e)
@@ -44,14 +43,14 @@ namespace service.Controllers
             }
         }
         [HttpGet]
-        public ActionResult<Responce> AddDevicePerson(long phone, string device_id)
+        public async Task<ActionResult<Responce>> AddDevicePerson(long phone, string device_id)
         {
             try
             {
-                var person = _repository.GetPerson(phone);
+                var person = await _repository.GetPerson(phone);
                 if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
                 if (!device_id.CheckFormatDeviceId()) return ErrorCode.FormatDeviceIdNotSupport.getResponce();
-                person = _repository.GetPerson( device_id);
+                person = await _repository.GetPerson( device_id);
                 if (person == null)                
                     _repository.AddDevicePerson(phone, device_id);                
                 return new Responce() { IsOk = true };
@@ -63,14 +62,14 @@ namespace service.Controllers
         }
 
         [HttpGet]
-        public ActionResult<Responce> AddDeviceNotificationToken(string device_id, string token)
+        public async Task<ActionResult<Responce>> AddDeviceNotificationToken(string device_id, string token)
         {
             try
             {
                 if (token == null || token.Length < 15)
                     return ErrorCode.FormatTokenNotSupport.getResponce();
                 if (!device_id.CheckFormatDeviceId()) return ErrorCode.FormatDeviceIdNotSupport.getResponce();
-                var person = _repository.GetPerson(device_id);
+                var person = await _repository.GetPerson(device_id);
                 if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
                 _repository.AddDeviceNotificationToken(device_id, token);
                 return new Responce() { IsOk = true };
@@ -82,11 +81,11 @@ namespace service.Controllers
         }
 
         [HttpGet]
-        public ActionResult<Responce> AddLocation(string device_id, double lat, double lon, int radius)
+        public async Task<ActionResult<Responce>> AddLocation(string device_id, double lat, double lon, int radius)
         {
             try
             {
-                var person = _repository.GetPerson(device_id);
+                var person = await _repository.GetPerson(device_id);
                 if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
                 if (person.LastLocationUpdateRequest < DateTime.UtcNow.AddSeconds(-30)) return new Responce() { IsOk = true };
                 if (lat > -90 && lat < 90 && lon > -180 && lon < 180)
@@ -102,11 +101,11 @@ namespace service.Controllers
             }
         }
         [HttpGet]
-        public ActionResult<NotificationSubscribeInfoResponce> GetSubscribeNotificationInfo(string device_id)
+        public async Task<ActionResult<NotificationSubscribeInfoResponce>> GetSubscribeNotificationInfo(string device_id)
         {
             try
             {
-                var person = _repository.GetPerson(device_id);
+                var person = await _repository.GetPerson(device_id);
                 if (!person.Check()) return (NotificationSubscribeInfoResponce)ErrorCode.NotQuarantine.getResponce();
 
                 return new NotificationSubscribeInfoResponce()
@@ -122,7 +121,7 @@ namespace service.Controllers
             }
         }
         [HttpPost]
-        public ActionResult<Responce> AddFileByDevice(DeviceFileInfo deviceFile)
+        public async Task<ActionResult<Responce>> AddFileByDevice(DeviceFileInfo deviceFile)
         {
             try
             {
@@ -139,7 +138,7 @@ namespace service.Controllers
                     case DeviceFileTypeEnum.Jpeg: extension = ".jpg"; break;
                     default: return ErrorCode.NotSupport.getResponce();
                 }
-                var person = _repository.GetPerson(deviceFile.DeviceId);
+                var person = await _repository.GetPerson(deviceFile.DeviceId);
                 if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
                 _repository.AddDeviceFile(deviceFile.DeviceId, DateTime.UtcNow.ToString("yyyyMMddHHmm") + extension);
                 return new Responce() { IsOk = true };

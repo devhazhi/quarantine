@@ -161,8 +161,11 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
         // Check if message contains a notification payload.
         if (notification != null) {
             String body = notification.getBody();
+            String title =notification.getTitle();
             Log.d(TAG, "Message Notification Body: " + body);
-            sendNotification(body);
+            if(title == null || title.length() ==0)
+                title = getString(R.string.default_notification_title);
+            sendNotification(title, body);
         }
 
         // Also if you intend on generating your own notifications as a result of a received FCM
@@ -230,7 +233,7 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
      *
      * @param messageBody FCM message body received.
      */
-    private void sendNotification( String messageBody) {
+    private void sendNotification(String title, String messageBody) {
         Intent intent = new Intent(this, MapsActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
@@ -241,7 +244,7 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, channelId)
                         .setSmallIcon(R.drawable.home_map_marker)
-                        .setContentTitle(getString(R.string.default_notification_title))
+                        .setContentTitle(title)
                         .setContentText(messageBody)
                         .setAutoCancel(true)
                         .setSound(defaultSoundUri)

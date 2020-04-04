@@ -7,13 +7,15 @@ using System.Data;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Data.Sql;
+using System.Data.SqlClient;
 
 namespace service.Models
 {
     public interface IDataRepository
     {
-        PersonCacheObject GetPerson(long? phone );
-        PersonCacheObject GetPerson(string device_id);
+        Task<PersonCacheObject> GetPerson(long? phone );
+        Task<PersonCacheObject> GetPerson(string device_id);
         bool AddLocation(string device_id, double lat, double lon, int radius);
         void AddDevicePerson(long phone, string device_id);
         void AddDeviceNotificationToken(string device_id, string token);
@@ -157,18 +159,18 @@ END
                 }
             }
         }
-        public PersonCacheObject GetPerson(long? phone)
+        public async Task<PersonCacheObject> GetPerson(long? phone)
         {
             PersonCacheObject person = null;
             if (phone.HasValue && _cachePhonePerson.TryGetValue(phone.Value, out person) && person != null) return person;
-            else if (phone.HasValue && _cachePhonePerson.Count == 0) return _cachePhonePerson[phone.Value] = GetPersonFormDb(phone);
+            else if (phone.HasValue && _cachePhonePerson.Count == 0) return _cachePhonePerson[phone.Value] = await GetPersonFormDb(phone);
             return null;
         }
-        public PersonCacheObject GetPerson(string device_id)
+        public async Task<PersonCacheObject> GetPerson(string device_id)
         {
             PersonCacheObject person = null;
             if (device_id?.Length > 0 && _cacheDevicePerson.TryGetValue(device_id, out person) && person != null) return person;
-            else if (device_id?.Length > 5 && _cacheDevicePerson.Count == 0) return GetPersonFormDb(null, device_id);
+            else if (device_id?.Length > 5 && _cacheDevicePerson.Count == 0) return await GetPersonFormDb(null, device_id);
             return null;
         }
 
@@ -178,8 +180,7 @@ END
             {
                 using (var connection = new MsSqlWorker(GetConnection()))
                 {
-                    connection.Exec(
-                                                             @"
+                    connection.Exec(@"
                                       insert into PersonDevice (phone, device_id)
                                       values(@phone, @device_id)
                                     ", parameters: new SwParameters
@@ -250,13 +251,13 @@ END
             };
         }
 
-        private PersonCacheObject GetPersonFormDb(long? phone = null, string? device_id = null)
+        private async Task<PersonCacheObject> GetPersonFormDb(long? phone = null, string? device_id = null)
         {
-            using (var connection = new MsSqlWorker(GetConnection()))
+            DateTime requestTime = DateTime.UtcNow;
+            using (var connection = new SqlConnection(GetConnection()))
             {
-                DateTime requestTime = DateTime.UtcNow;
-                var persons = connection.Query(
-                     @"
+                if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+                using (var cmd = new SqlCommand(@"
     SELECT 
     isnull(isnull(name_first, name_last), name_patr) as name,
     [quarantine_location].EnvelopeCenter().Lat as lat ,
@@ -270,41 +271,40 @@ END
       left join DeviceNotificationToken dnt on dnt.device_id = pd.device_id
     where (@phone is null or p.phone = @phone )
 and (@device_id is null or pd.device_id = @device_id)
-", (dr) =>
-                     {
-                         var phone = dr.GetInt64(4);
-                         return new
-                         {
-                             Person = _cachePhonePerson.AddOrUpdate(phone,
-                             (p) => new PersonCacheObject() { Person = GetPersonFromReader(dr), LastUpdate = requestTime },
-                             (p, old) =>
-                             {
-                                 if (old.LastUpdate == requestTime)
-                                     return old;
-                                 return new PersonCacheObject()
-                                 {
-                                     Person = GetPersonFromReader(dr),
-                                     LastUpdate = requestTime,
-                                     LastLocationUpdateRequest = old.LastLocationUpdateRequest,
-                                 };
-                             }),
-                             Phone = phone,
-                             DeviceId = dr.GetNullableString(5)
-                         };
-                     }, parameters: new SwParameters
-                                            {
-                                                { "@lastTime", LastPersonUpdates },
-                                            }).ToArray();
-                if (persons?.Length > 0)
+"))
                 {
-                    foreach (var p in persons)
+                    cmd.Parameters.AddWithValue("@lastTime", LastPersonUpdates);
+                    PersonCacheObject personResult = null;
+                    using(var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow))
                     {
-                        if (p.DeviceId?.Length > 0)
-                            _cacheDevicePerson[p.DeviceId] = p.Person;
+                        while (await reader.ReadAsync())
+                        {
+                            var phoneRes = reader.GetInt64(4);
+                            var p = new
+                            {
+                                Person = _cachePhonePerson.AddOrUpdate(phoneRes,
+                                (p) => new PersonCacheObject() { Person = GetPersonFromReader(reader), LastUpdate = requestTime },
+                                (p, old) =>
+                                {
+                                    if (old.LastUpdate == requestTime)
+                                        return old;
+                                    return new PersonCacheObject()
+                                    {
+                                        Person = GetPersonFromReader(reader),
+                                        LastUpdate = requestTime,
+                                        LastLocationUpdateRequest = old.LastLocationUpdateRequest,
+                                    };
+                                }),
+                                Phone = phoneRes,
+                                DeviceId = reader.GetNullableString(5)
+                            };
+                            if (p.DeviceId?.Length > 0)
+                                _cacheDevicePerson[p.DeviceId] = p.Person;
+                            personResult = p.Person;
+                        }
+                        return personResult;
                     }
                 }
-                return persons?.FirstOrDefault().Person;
-
             }
         }
 
