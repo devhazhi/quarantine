@@ -27,8 +27,10 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.widget.Toast;
 
+import devcom.ru.qurantinemap.api.models.NotificationSubscribeResponce;
 import devcom.ru.qurantinemap.api.models.PersonObject;
 import devcom.ru.qurantinemap.api.models.Responce;
+import devcom.ru.qurantinemap.notification.NotificationFirebaseMessagingService;
 import devcom.ru.qurantinemap.service.DownloadTask;
 import devcom.ru.qurantinemap.service.NetworkInfoCallback;
 import devcom.ru.qurantinemap.service.RequestResult;
@@ -58,6 +60,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         try {
             String personString = getIntent().getStringExtra("dataPersonString");
             _personInfo = PersonObject.tryFromJson(personString);
+            if(_personInfo != null){
+                serviceProxy.requestGetSubscribeNotificationInfoTask(new ResultCallback() {
+                    @Override
+                    public void complete(RequestResult requestResult) {
+                        if(requestResult == null) return;
+                        NotificationSubscribeResponce res = NotificationSubscribeResponce.tryFromJson(requestResult.resultValue);
+                        NotificationFirebaseMessagingService.syncSubscribeTopic(res.topics);
+                    }
+                });
+            }
             // Obtain the SupportMapFragment and get notified when the map is ready to be used.
             SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.map);

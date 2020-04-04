@@ -48,10 +48,16 @@ public class ServiceProxy {
         return  new ServiceProxy();
     }
 
-    public AsyncTask<String, Integer, RequestResult> requestPersonByDeviceTask(ResultCallback<PersonObject> personObjectResultCallback)   {
+    public AsyncTask<String, Integer, RequestResult> requestPersonByDeviceTask(ResultCallback personObjectResultCallback)   {
         return new RequestUrlTask(networkInfoCallback, personObjectResultCallback, null)
                 .execute(_url +"GetPersonByDevice?device_id=" +deviceId);
     }
+
+    public AsyncTask<String, Integer, RequestResult> requestGetSubscribeNotificationInfoTask(ResultCallback personObjectResultCallback)   {
+        return new RequestUrlTask(networkInfoCallback, personObjectResultCallback, null)
+                .execute(_url +"GetSubscribeNotificationInfo?device_id=" +deviceId);
+    }
+
 
     public AsyncTask<String, Integer, RequestResult> requestAddDeviceFileTask(@NonNull DeviceFile deviceFile,
                                                                                 ResultCallback personObjectResultCallback) {

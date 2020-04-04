@@ -46,6 +46,7 @@ import java.util.Map;
 
 import devcom.ru.qurantinemap.R;
 import devcom.ru.qurantinemap.MapsActivity;
+import devcom.ru.qurantinemap.api.models.NotificationSubscribeResponce;
 import devcom.ru.qurantinemap.api.models.Responce;
 import devcom.ru.qurantinemap.service.DownloadCallback;
 import devcom.ru.qurantinemap.service.DownloadTask;
@@ -70,8 +71,7 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
     private static final String TAG = "NotificationFirebaseMessagingService";
     private static Hashtable<String, String> _dicSubscribeTopic  = new Hashtable<String, String>();
 
-
-    private static void subscribeTopic(@NonNull final String[] topics) {
+    public static void syncSubscribeTopic(@NonNull final String[] topics) {
         Enumeration<String>  keys = _dicSubscribeTopic.keys();
         if(keys != null && keys.hasMoreElements()) {
             Hashtable<String, String> topicsHash = new Hashtable<String, String>();
@@ -108,6 +108,7 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
             }
         }
     }
+
     private ServiceProxy serviceProxy;
     private ServiceProxy getServiceProxy(){
         if(serviceProxy==null)
