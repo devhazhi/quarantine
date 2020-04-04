@@ -215,7 +215,6 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
      * @param token The new token.
      */
     private void sendRegistrationToServer(String token) {
-        // TODO: Implement this method to send token to your app server.
         getServiceProxy().requestAddDeviceNotificationTokenTask(token, new ResultCallback() {
             @Override
             public void complete(RequestResult requestResult) {
@@ -240,7 +239,7 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, channelId)
-                        .setSmallIcon(R.drawable.common_google_signin_btn_icon_dark)
+                        .setSmallIcon(R.drawable.home_map_marker)
                         .setContentTitle(getString(R.string.default_notification_title))
                         .setContentText(messageBody)
                         .setAutoCancel(true)

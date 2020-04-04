@@ -54,10 +54,10 @@
 
         <activity
             android:name="devcom.ru.qurantinemap.SplashActivity"
-            android:label="@string/title_activity_maps">
+            android:label="@string/title_activity_maps"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -65,7 +65,7 @@
 
         <service
             android:name="devcom.ru.qurantinemap.notification.NotificationFirebaseMessagingService"
-            android:exported="false">
+            android:exported="false" android:foregroundServiceType="location">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
