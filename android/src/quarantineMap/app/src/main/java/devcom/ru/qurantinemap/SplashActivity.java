@@ -11,20 +11,28 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.gson.Gson;
+
 import java.util.UUID;
 
 import devcom.ru.qurantinemap.api.models.PersonObject;
 import devcom.ru.qurantinemap.service.DownloadTask;
 import devcom.ru.qurantinemap.service.DownloadCallback;
+import devcom.ru.qurantinemap.service.NetworkInfoCallback;
+import devcom.ru.qurantinemap.service.RequestResult;
+import devcom.ru.qurantinemap.service.RequestUrlTask;
+import devcom.ru.qurantinemap.service.ResultCallback;
 import devcom.ru.qurantinemap.service.ServiceProxy;
 
-public class SplashActivity extends AppCompatActivity implements DownloadCallback<String> {
+public class SplashActivity extends AppCompatActivity implements NetworkInfoCallback {
+
+    private ServiceProxy serviceProxy;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
-
+        serviceProxy = new ServiceProxy(this);
         LoadData();
     }
 
@@ -39,42 +47,21 @@ public class SplashActivity extends AppCompatActivity implements DownloadCallbac
             editor.commit();
         }
         ServiceProxy.deviceId =appId;
-        String str =ServiceProxy.createDefault().getPersonByDeviceUrl();
-        AsyncTask<String, Integer, DownloadTask.Result> execute = new DownloadTask((DownloadCallback<String>) this).execute(str);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String[] permissions, int[] grantResults) {
-        switch (requestCode) {
-            case 1: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    LoadData();
+        serviceProxy.requestPersonByDeviceTask(new ResultCallback() {
+            @Override
+            public void complete(RequestResult requestResult) {
+                if(requestResult == null) return;
+                Intent intent = null;
+                PersonObject res =PersonObject.tryFromJson(requestResult.resultValue);
+                if (res == null) {
+                    intent = new Intent(SplashActivity.this, SignActivity.class);
                 } else {
-                    finish();
+                    intent = new Intent(SplashActivity.this, MapsActivity.class);
+                    intent.putExtra("dataPersonString", requestResult.resultValue);
                 }
-                return;
+                startActivity(intent);
             }
-
-            // other 'case' lines to check for other
-            // permissions this app might request.
-        }
-    }
-
-    @Override
-    public void updateFromDownload(String person) {
-        PersonObject po = ServiceProxy.createDefault().parsePersonObject(person);
-
-        Intent intent = null;
-        if (po == null) {
-            intent = new Intent(SplashActivity.this, SignActivity.class);
-        } else {
-            intent = new Intent(SplashActivity.this, MapsActivity.class);
-            intent.putExtra("dataPersonString", person);
-        }
-        startActivity(intent);
+        });
     }
 
     @Override
@@ -85,15 +72,6 @@ public class SplashActivity extends AppCompatActivity implements DownloadCallbac
         return networkInfo;
     }
 
-    @Override
-    public void onProgressUpdate(int progressCode, int percentComplete) {
-
-    }
-
-    @Override
-    public void finishDownloading() {
-
-    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);

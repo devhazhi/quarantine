@@ -49,8 +49,8 @@ namespace service.Controllers
             try
             {
                 var person = _repository.GetPerson(phone);
-                if (person == null || person.HasQuarantineStop) return new Responce() { IsOk = false, Error = "Вас нет в карантине или карантин закончен для вас" };
-                if(device_id == null || device_id.Length <5) return new Responce() { IsOk = false, Error = "Идентификатор вашего устройства не соответствует правилам безопасности" };
+                if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
+                if (!device_id.CheckFormatDeviceId()) return ErrorCode.FormatDeviceIdNotSupport.getResponce();
                 person = _repository.GetPerson( device_id);
                 if (person == null)                
                     _repository.AddDevicePerson(phone, device_id);                
@@ -58,7 +58,7 @@ namespace service.Controllers
             }
             catch (Exception e)
             {
-                return new Responce() { IsOk = false, Error = e.ToString() };
+                return e.getResponce();
             }
         }
 
@@ -67,36 +67,38 @@ namespace service.Controllers
         {
             try
             {
-                if (token == null || token.Length < 15) return new Responce() { IsOk = false, Error = "Идентификатор вашего token не соответствует правилам безопасности" };
-                if (device_id == null || device_id.Length < 5) return new Responce() { IsOk = false, Error = "Идентификатор вашего устройства не соответствует правилам безопасности" };
+                if (token == null || token.Length < 15)
+                    return ErrorCode.FormatTokenNotSupport.getResponce();
+                if (!device_id.CheckFormatDeviceId()) return ErrorCode.FormatDeviceIdNotSupport.getResponce();
                 var person = _repository.GetPerson(device_id);
-                if (person == null || person.HasQuarantineStop) return new Responce() { IsOk = false, Error = "Вас нет в карантине или карантин закончен для вас" };
+                if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
                 _repository.AddDeviceNotificationToken(device_id, token);
                 return new Responce() { IsOk = true };
             }
             catch (Exception e)
             {
-                return new Responce() { IsOk = false, Error = e.ToString() };
+                return  e.getResponce() ;
             }
         }
+
         [HttpGet]
         public ActionResult<Responce> AddLocation(string device_id, double lat, double lon, int radius)
         {
             try
             {
                 var person = _repository.GetPerson(device_id);
-                if (person == null || person.HasQuarantineStop) return new Responce() { IsOk = false, Error = "Вас нет в карантине или карантин закончен для вас" };
-                if (person.HasQuarantineStop || person.LastLocationUpdateRequest < DateTime.UtcNow.AddSeconds(-30)) return new Responce() { IsOk = true };
+                if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
+                if (person.LastLocationUpdateRequest < DateTime.UtcNow.AddSeconds(-30)) return new Responce() { IsOk = true };
                 if (lat > -90 && lat < 90 && lon > -180 && lon < 180)
                 {
                     if (_repository.AddLocation(device_id, lat, lon, radius))
                         return new Responce() { IsOk = true };
                 }
-                return new Responce() { IsOk = false, Error = "Координаты неизвестны" };
+                return ErrorCode.CoordinateFailed.getResponce();
             }
             catch (Exception e)
             {
-                return new Responce() { IsOk = false, Error = e.Message };
+                return e.getResponce();
             }
         }
         [HttpGet]
@@ -105,7 +107,7 @@ namespace service.Controllers
             try
             {
                 var person = _repository.GetPerson(device_id);
-                if (person == null || person.HasQuarantineStop) return new NotificationSubscribeInfoResponce() { IsOk = false, Error = "Вас нет в карантине или карантин закончен для вас" };
+                if (!person.Check()) return (NotificationSubscribeInfoResponce)ErrorCode.NotQuarantine.getResponce();
 
                 return new NotificationSubscribeInfoResponce()
                 {
@@ -116,10 +118,37 @@ namespace service.Controllers
             }
             catch (Exception e)
             {
-                return new NotificationSubscribeInfoResponce() { IsOk = false, Error = e.Message };
+                return (NotificationSubscribeInfoResponce)e.getResponce();
             }
         }
-
+        [HttpPost]
+        public ActionResult<Responce> AddFileByDevice(DeviceFileInfo deviceFile)
+        {
+            try
+            {
+                if(deviceFile == null || deviceFile.DeviceId == null) return new Responce() { IsOk = false, Error="Нет данных об устройстве для записи" };
+                if (deviceFile.Data == null || deviceFile.Data.Length == 0) return new Responce() { IsOk = false, Error = "Нет данных об устройстве для записи" };
+                if (deviceFile.Data == null || deviceFile.Data.Length > Config.MaxDeviceFileSizeBytes)
+                    return new Responce() { IsOk = false,
+                        Error = $"Данные привышают максимальный размер ({Config.MaxDeviceFileSizeBytes / 1024.0}кб)",
+                        ErrorCode = ErrorCode.NotSupport 
+                    };
+                string extension = "";
+                switch (deviceFile.FileType)
+                {
+                    case DeviceFileTypeEnum.Jpeg: extension = ".jpg"; break;
+                    default: return ErrorCode.NotSupport.getResponce();
+                }
+                var person = _repository.GetPerson(deviceFile.DeviceId);
+                if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
+                _repository.AddDeviceFile(deviceFile.DeviceId, DateTime.UtcNow.ToString("yyyyMMddHHmm") + extension);
+                return new Responce() { IsOk = true };
+            }
+            catch (Exception e)
+            {
+                return e.getResponce();
+            }
+        }
         [HttpGet]
         public ActionResult<Responce> GetStartNotification(string device_id, string topic, string title, string message)
         {
@@ -132,12 +161,12 @@ namespace service.Controllers
                 }
                 else
                 {
-                    return new Responce() { IsOk = false, Error = "Нет доступа" };
+                    return BadRequest();
                 }
             }
             catch (Exception e)
             {
-                return new Responce() { IsOk = false, Error = e.Message };
+                return BadRequest();
             }
         }
 

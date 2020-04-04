@@ -25,13 +25,11 @@ import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -48,8 +46,12 @@ import java.util.Map;
 
 import devcom.ru.qurantinemap.R;
 import devcom.ru.qurantinemap.MapsActivity;
+import devcom.ru.qurantinemap.api.models.Responce;
 import devcom.ru.qurantinemap.service.DownloadCallback;
 import devcom.ru.qurantinemap.service.DownloadTask;
+import devcom.ru.qurantinemap.service.NetworkInfoCallback;
+import devcom.ru.qurantinemap.service.RequestResult;
+import devcom.ru.qurantinemap.service.ResultCallback;
 import devcom.ru.qurantinemap.service.ServiceProxy;
 
 /**
@@ -63,10 +65,12 @@ import devcom.ru.qurantinemap.service.ServiceProxy;
  *   <action android:name="com.google.firebase.MESSAGING_EVENT"/>
  * </intent-filter>
  */
-public class NotificationFirebaseMessagingService extends FirebaseMessagingService implements   DownloadCallback<String> {
+public class NotificationFirebaseMessagingService extends FirebaseMessagingService implements NetworkInfoCallback {
 
     private static final String TAG = "NotificationFirebaseMessagingService";
     private static Hashtable<String, String> _dicSubscribeTopic  = new Hashtable<String, String>();
+
+
     private static void subscribeTopic(@NonNull final String[] topics) {
         Enumeration<String>  keys = _dicSubscribeTopic.keys();
         if(keys != null && keys.hasMoreElements()) {
@@ -104,6 +108,12 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
             }
         }
     }
+    private ServiceProxy serviceProxy;
+    private ServiceProxy getServiceProxy(){
+        if(serviceProxy==null)
+            serviceProxy = new ServiceProxy(this);
+        return serviceProxy;
+    }
     /**
      * Called when message is received.
      *
@@ -128,7 +138,6 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
         // messages. For more see: https://firebase.google.com/docs/cloud-messaging/concept-options
         // [END_EXCLUDE]
 
-        // TODO(developer): Handle FCM messages here.
         // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
         String formText = remoteMessage.getFrom();
         Log.d(TAG, "From: " +formText);
@@ -207,8 +216,13 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
      */
     private void sendRegistrationToServer(String token) {
         // TODO: Implement this method to send token to your app server.
-        String url = ServiceProxy.createDefault().getAddDeviceNotificationTokenUrl(token);
-        new DownloadTask(this);
+        getServiceProxy().requestAddDeviceNotificationTokenTask(token, new ResultCallback() {
+            @Override
+            public void complete(RequestResult requestResult) {
+                if(requestResult.exception == null)
+                    Log.e(TAG, requestResult.exception.toString());
+            }
+        });
     }
 
     /**
@@ -248,25 +262,10 @@ public class NotificationFirebaseMessagingService extends FirebaseMessagingServi
     }
 
     @Override
-    public void updateFromDownload(String result) {
-        Log.d(TAG, "updateFromDownload: " +result);
-    }
-
-    @Override
     public NetworkInfo getActiveNetworkInfo() {
         ConnectivityManager connectivityManager =
                 (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         return networkInfo;
-    }
-
-    @Override
-    public void onProgressUpdate(int progressCode, int percentComplete) {
-
-    }
-
-    @Override
-    public void finishDownloading() {
-
     }
 }

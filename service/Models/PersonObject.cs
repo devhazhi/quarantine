@@ -33,5 +33,16 @@ namespace service.Models
     {
         public bool IsOk { get; set; }
         public string Error { get; set; }
-    }   
+        public ErrorCode ErrorCode { get; set; }
+    }
+    public class DeviceFileInfo
+    {
+        public string DeviceId { get; set; }
+        public byte[] Data { get; set; }
+        public DeviceFileTypeEnum FileType { get; set; }
+    }
+    
+    public enum DeviceFileTypeEnum : int { Jpeg = 1 };
+    public enum ErrorCode : int { NotError = 0, NotQuarantine, NotDevice, FormatDeviceIdNotSupport, FormatTokenNotSupport, CoordinateFailed, AccessDeny, NotSupport };
+
 }

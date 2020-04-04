@@ -30,11 +30,13 @@ import android.widget.Toast;
 import devcom.ru.qurantinemap.api.models.PersonObject;
 import devcom.ru.qurantinemap.api.models.Responce;
 import devcom.ru.qurantinemap.service.DownloadTask;
-import devcom.ru.qurantinemap.service.DownloadCallback;
+import devcom.ru.qurantinemap.service.NetworkInfoCallback;
+import devcom.ru.qurantinemap.service.RequestResult;
+import devcom.ru.qurantinemap.service.ResultCallback;
 import devcom.ru.qurantinemap.service.ServiceProxy;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener,
-        DownloadCallback<String> {
+        NetworkInfoCallback {
 
     private GoogleMap mMap;
     private Location lastCoord;
@@ -46,23 +48,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 2;
     private AsyncTask<String, Integer, DownloadTask.Result> _lastExecute;
     private PersonObject _personInfo;
+    private ServiceProxy serviceProxy;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        serviceProxy = new ServiceProxy(this);
         try {
             String personString = getIntent().getStringExtra("dataPersonString");
-            _personInfo = ServiceProxy.createDefault().parsePersonObject(personString);
-            Responce res = ServiceProxy.createDefault().parseResponce(personString);
-            if (res != null) {
-                if (res.isOk != null && !res.isOk) {
-                    _personInfo = null;
-                    ShowMessage(res.error, Toast.LENGTH_LONG);
-                }
-
-            }
-
+            _personInfo = PersonObject.tryFromJson(personString);
             // Obtain the SupportMapFragment and get notified when the map is ready to be used.
             SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.map);
@@ -133,12 +128,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void Located() {
         if(mMap != null) {
             if (lastCoord != null) {
-                if (_quarantineLocation == null && _personInfo != null && _personInfo.zone != null) {
-                    _quarantineLocation = new Location(lastCoord);
-                    _quarantineLocation.setLatitude(_personInfo.zone.lat);
-                    _quarantineLocation.setLongitude(_personInfo.zone.lon);
-                    _quarantineLocation.setAccuracy((int)_personInfo.zone.radius);
-                }
+                initQuarantineZone();
                 String name ="Я";
                 if(_personInfo != null && _personInfo.name != null)
                     name = _personInfo.name;
@@ -146,16 +136,48 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (_marker == null) {
                     _marker = mMap.addMarker(new MarkerOptions().position(coord).title("Я"));
                 } else _marker.setPosition(coord);
-                if (_quarantineLocation!= null && _quarantineLocation.distanceTo(lastCoord) > _personInfo.zone.radius) {
-                    _marker.setTitle("вернитесь зону карантина!!!");
-                } else _marker.setTitle(name);
-                if(_personInfo!=null && _personInfo.quarantineStopUnix > 0) {
-                    String url = ServiceProxy.createDefault().getAddLocationUrl(_marker.getPosition(), (int) lastCoord.getAccuracy());
-                    _lastExecute = new DownloadTask(this)
-                            .execute(url);
-                }
+                setTitleMarker(name);
+                sendLocation();
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(coord));
             }
+        }
+    }
+
+    private void sendLocation() {
+        if(_personInfo!=null && _personInfo.quarantineStopUnix > 0) {
+            serviceProxy.requestAddLocationTask(_marker.getPosition(), (int) lastCoord.getAccuracy(), new ResultCallback() {
+                @Override
+                public void complete(RequestResult requestResult) {
+                    if(requestResult == null ){
+                        ShowMessage("Сеть не доступна", Toast.LENGTH_SHORT);
+                        return;
+                    }
+                    Responce res =Responce.tryFromJson(requestResult.resultValue);
+                    if(res != null && res.isOk) {
+                        ShowMessage("Координаты переданы", Toast.LENGTH_SHORT);
+                    }
+                    else {
+                        if(res ==null || res.error == null)
+                            ShowMessage("Ошибка передачи координат", Toast.LENGTH_LONG);
+                        else ShowMessage("Ошибка передачи координат: " + res.error, Toast.LENGTH_LONG);
+                    }
+                }
+            });
+        }
+    }
+
+    private void setTitleMarker(String name) {
+        if (_quarantineLocation!= null && _quarantineLocation.distanceTo(lastCoord) > _personInfo.zone.radius) {
+            _marker.setTitle("вернитесь зону карантина!!!");
+        } else _marker.setTitle(name);
+    }
+
+    private void initQuarantineZone() {
+        if (_quarantineLocation == null && _personInfo != null && _personInfo.zone != null) {
+            _quarantineLocation = new Location(lastCoord);
+            _quarantineLocation.setLatitude(_personInfo.zone.lat);
+            _quarantineLocation.setLongitude(_personInfo.zone.lon);
+            _quarantineLocation.setAccuracy((int)_personInfo.zone.radius);
         }
     }
 
@@ -201,19 +223,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    @Override
-    public void updateFromDownload(String result) {
-        Responce res = ServiceProxy.createDefault().parseResponce(result);
-        if(res != null && res.isOk) {
-            ShowMessage("Координаты переданы", Toast.LENGTH_SHORT);
-        }
-        else {
-            if(res ==null)
-                ShowMessage("Ошибка передачи координат: " + result, Toast.LENGTH_LONG);
-            else ShowMessage("Ошибка передачи координат: " + res.error, Toast.LENGTH_LONG);
-        }
 
-    }
 
     @Override
     public NetworkInfo getActiveNetworkInfo() {
@@ -223,13 +233,4 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return networkInfo;
     }
 
-    @Override
-    public void onProgressUpdate(int progressCode, int percentComplete) {
-
-    }
-
-    @Override
-    public void finishDownloading() {
-        _lastExecute = null;
-    }
 }

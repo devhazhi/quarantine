@@ -16,6 +16,7 @@ namespace service.Utils
         {
             QuarantineDbConnection = configuration["ConnectionString:QuarantineDb"].ToString().Split('|');
             Radius = int.Parse(configuration["Data:Radius"]);
+            MaxDeviceFileSizeBytes = int.Parse(configuration["Data:MaxDeviceFileSizeBytes"]);
             Repository =  new MsSqlDbProvider(this);
 
         }
@@ -24,5 +25,6 @@ namespace service.Utils
   
         public int Radius { get; }
         public IDataRepository Repository { get; }
+        public int MaxDeviceFileSizeBytes { get; internal set; }
     }
 }

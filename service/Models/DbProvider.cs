@@ -17,6 +17,7 @@ namespace service.Models
         bool AddLocation(string device_id, double lat, double lon, int radius);
         void AddDevicePerson(long phone, string device_id);
         void AddDeviceNotificationToken(string device_id, string token);
+        void AddDeviceFile(string device_id, string name);
         NotificationSubscribe[] GetNotifications();
 
     }
@@ -330,6 +331,34 @@ insert into  (device_id, token)
                                             });
                     if (_cachePhonePerson.Count != 0)
                         _cacheDevicePerson[device_id].Person.Token = token;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleExceptionSql(e);
+                throw;
+            }
+        }
+
+        public void AddDeviceFile(string device_id, string name)
+        {
+            try
+            {
+                using (var connection = new MsSqlWorker(GetConnection()))
+                {
+                    connection.Exec(
+ @"
+Merge DeviceFile t
+using (select @name, @device_id) as s (name, device_id)
+on  t.device_id = s.device_id and t.name = s.name 
+when not matched then
+insert into  (device_id, name, recieved)
+     values(s.device_id, s.name, GETUTCNOW())
+                                    ", parameters: new SwParameters
+                                            {
+                                                { "name", name },
+                                                { "device_id", device_id }
+                                            });
                 }
             }
             catch (Exception e)

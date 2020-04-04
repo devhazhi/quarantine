@@ -18,58 +18,40 @@ import devcom.ru.qurantinemap.api.models.PersonObject;
 import devcom.ru.qurantinemap.api.models.Responce;
 import devcom.ru.qurantinemap.service.DownloadTask;
 import devcom.ru.qurantinemap.service.DownloadCallback;
+import devcom.ru.qurantinemap.service.NetworkInfoCallback;
+import devcom.ru.qurantinemap.service.RequestResult;
+import devcom.ru.qurantinemap.service.ResultCallback;
 import devcom.ru.qurantinemap.service.ServiceProxy;
 
-public class SignActivity extends AppCompatActivity implements DownloadCallback<String> {
+public class SignActivity extends AppCompatActivity implements NetworkInfoCallback {
 
     private EditText edittext;
-    private DownloadCallback<String> callback;
+    private NetworkInfoCallback networkInfoCallback;
+    private ServiceProxy serviceProxy;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sigh);
+        serviceProxy = new ServiceProxy(this);
         edittext = (EditText) findViewById(R.id.editText);
         Button btn = (Button) findViewById(R.id.button);
-        callback = this;
+        networkInfoCallback = this;
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(edittext.length() == 11){
                     TextView text = (TextView) findViewById(R.id.errorText);
                     text.setText("");
-                    new DownloadTask(callback)
-                            .execute(ServiceProxy.createDefault().getAddDevicePersonUrl(Long.parseLong(edittext.getText().toString())));
+                    serviceProxy.requestAddDevicePersonTask(Long.parseLong(edittext.getText().toString()), new ResultCallback() {
+                        @Override
+                        public void complete(RequestResult requestResult) {
+                            completeAddDeviceResonce(requestResult);
+                        }
+                    });
                 }
             }
         });
-    }
-
-    @Override
-    public void updateFromDownload(String result) {
-        Responce res = ServiceProxy.createDefault().parseResponce(result);
-        if(res != null && res.isOk != null && res.isOk) {
-            AsyncTask<String, Integer, DownloadTask.Result> execute = new DownloadTask(callback)
-                    .execute(ServiceProxy.createDefault().getPersonByDeviceUrl());
-        }else{
-
-            PersonObject po = ServiceProxy.createDefault().parsePersonObject(result);
-            Intent intent = null;
-            if ( po != null) {
-                intent = new Intent(SignActivity.this, MapsActivity.class);
-                intent.putExtra("dataPersonString", result);
-                startActivity(intent);
-            }
-            else{
-                if(res == null || res.isOk == null || !res.isOk ){
-                    TextView text = (TextView) findViewById(R.id.errorText);
-                    if(res == null)
-                        text.setText(result);
-                    else  text.setText(res.error);
-                    text.setTextColor(Color.rgb(255, 155, 155));
-                }
-            }
-        }
     }
 
     @Override
@@ -80,13 +62,42 @@ public class SignActivity extends AppCompatActivity implements DownloadCallback<
         return networkInfo;
     }
 
-    @Override
-    public void onProgressUpdate(int progressCode, int percentComplete) {
 
+
+    public void completeGetPersonBy(RequestResult requestResult) {
+        if(requestResult == null) {
+            edittext.setText("Сеть не доступна");
+            return;
+        }
+        PersonObject res = PersonObject.tryFromJson(requestResult.resultValue);
+        if(res != null) {
+            Intent intent = new Intent(SignActivity.this, MapsActivity.class);
+            intent.putExtra("dataPersonString",  requestResult.resultValue);
+            startActivity(intent);
+        }
     }
 
-    @Override
-    public void finishDownloading() {
-
+    public void completeAddDeviceResonce(RequestResult requestResult) {
+        if(requestResult == null) {
+            edittext.setText("Сеть не доступна");
+            return;
+        }
+        Responce res = Responce.tryFromJson(requestResult.resultValue);
+        Boolean notNullIsOk =res != null && res.isOk != null;
+        if( notNullIsOk && res.isOk) {
+            serviceProxy.requestPersonByDeviceTask(new ResultCallback() {
+                @Override
+                public void complete(RequestResult requestResult) {
+                    completeGetPersonBy(requestResult);
+                }
+            });
+        }else {
+            TextView text = (TextView) findViewById(R.id.errorText);
+            if (notNullIsOk == false)
+                text.setText(requestResult.resultValue);
+            else if(res.error != null ) text.setText(res.error);
+            else text.setText("Код ошибки " + res.errorCode);
+            text.setTextColor(Color.rgb(255, 155, 155));
+        }
     }
 }
