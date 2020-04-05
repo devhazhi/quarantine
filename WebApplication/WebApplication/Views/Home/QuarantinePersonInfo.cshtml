@@ -1,0 +1,73 @@
+﻿@model WebApplication.Models.QuarantineModel
+
+@{
+    ViewData["Title"] = "QuarantinePersonInfo";
+}
+    <script type="text/javascript">
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(success);
+    } else {
+        alert("Нет доступа");
+    }
+    function addLocation( position, onResult) {
+        var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
+        xhr.open(
+            'GET',
+            '/Home/AddLocation?' +
+            'lat=' + position.coords.latitude +
+            '&lon=' + position.coords.longitude +
+            '&radius=' + position.coords.accuracy);
+        xhr.onreadystatechange = function () {
+            if (xhr.status == 200)
+                onResult('Координаты успешно переданы');
+        }
+        xhr.send();
+        }
+        function success(position) {
+            var lat = position.coords.latitude;
+            var long = position.coords.longitude;
+            addLocation(position, function (result) {
+                document.getElementById("addLocationResult").innerHTML = result;
+            })
+        var mymap = L.map('MapLocationId').setView([lat, long], 13);
+
+        L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+            maxZoom: 18,
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+                '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            id: 'mapbox/streets-v11',
+            tileSize: 512,
+            zoomOffset: -1
+        }).addTo(mymap);
+
+        var marker = L.marker([lat, long]).addTo(mymap).bindPopup("@Model.Person.Name").openPopup();
+          
+        @*L.circle([ @Model.Person.Zona.Lat,  @Model.Person.Zona.Lon], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5,
+            radius:  @Model.Person.Zona.Radius
+        }).addTo(mymap);*@
+    
+        }
+    </script>
+<div>
+    <h4>@Model.Person.Name</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Person.QuarantineStopInfo)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Person.QuarantineStopInfo)
+        </dd>
+        <dt class="col-sm-2">
+            Состоияния передачи координат
+        </dt>
+        <dd class="col-sm-10">
+            <p id="addLocationResult" class="p-1">@Model.StateSendLocation</p>
+        </dd>
+    </dl>
+</div>
+<div id="MapLocationId" style="width: 100%; height: 470px"></div>

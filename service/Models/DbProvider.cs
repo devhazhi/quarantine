@@ -246,8 +246,7 @@ END
                     Lon = (double)dr[2],
                     Radius = Radius
                 },
-                QuarantineStopUnix = !dr.IsDBNull(3) ? (long)dr.GetDateTime(3).Subtract(PersonCacheObject.UnixStart).TotalSeconds : 0,
-                Token = dr.GetNullableString(6)
+                QuarantineStopUnix = !dr.IsDBNull(3) ? (long)dr.GetDateTime(3).Subtract(PersonCacheObject.UnixStart).TotalSeconds : 0
             };
         }
 

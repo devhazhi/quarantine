@@ -11,7 +11,6 @@ namespace service.Models
         public DateTime? LastLocationUpdateRequest { get; set; }
         public DateTime? LastUpdate { get; set; }
         public bool HasQuarantineStop => Person.QuarantineStopUnix < (long)DateTime.UtcNow.Subtract(UnixStart).TotalSeconds;
-
         public readonly static DateTime UnixStart = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     }
@@ -21,6 +20,7 @@ namespace service.Models
         public string Name { get; set; }
         public long QuarantineStopUnix { get; set; }
         public string Token { get; set; }
+
     }    
    
     public class Location
@@ -38,11 +38,12 @@ namespace service.Models
     public class DeviceFileInfo
     {
         public string DeviceId { get; set; }
-        public byte[] Data { get; set; }
+        public byte[] Data { get; set; }        
         public DeviceFileTypeEnum FileType { get; set; }
     }
     
     public enum DeviceFileTypeEnum : int { Jpeg = 1 };
+    [Flags]
     public enum ErrorCode : int { NotError = 0, NotQuarantine, NotDevice, FormatDeviceIdNotSupport, FormatTokenNotSupport, CoordinateFailed, AccessDeny, NotSupport };
 
 }

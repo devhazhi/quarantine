@@ -1,0 +1,22 @@
+﻿@{
+    ViewData["Title"] = "Регистрация";
+}
+
+
+    <form method="post" asp-controller="Home" asp-action="Registry">
+        <input type="hidden" value="@Model.DeviceId" name="DeviceId" />
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="Phone">Введите свой номер телефона</label>
+                <input type="number" name="Phone" class="form-control" />
+            </div>
+        </div>
+        <input type="submit" value="Войти" class="btn btn-primary" />
+        <div class="col-sm-3">
+            <small id="passwordHelp" class="text-danger">
+                @Model.ErrorInfo
+            </small>
+        </div>
+    </form>
+  
+  
