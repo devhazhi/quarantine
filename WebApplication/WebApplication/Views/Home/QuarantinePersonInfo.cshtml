@@ -4,6 +4,11 @@
     ViewData["Title"] = "Карантин " + Model.Person.Name;
 }
     <script type="text/javascript">
+
+    window.localStorage.setItem('Identity','@Model.DeviceId');
+
+    </script>
+    <script type="text/javascript">
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(success);
     } else {

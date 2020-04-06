@@ -27,6 +27,7 @@ namespace WebApplication.Controllers
             if (string.IsNullOrEmpty(HttpContext.Session.Get<string>(SessionKeyName)))
             {
 #if DEBUG
+
                 HttpContext.Session.Set<string>(SessionKeyName, "c11dd068-79e1-4024-9ad9-ff6e3842cb77");
 #else
                 var error = _lastResponceInfo?.Error;
@@ -129,6 +130,27 @@ namespace WebApplication.Controllers
                 };
                 return RedirectToAction("Error");
             }
+        }
+        [HttpGet]
+        public async Task<ActionResult<PersonObject>> CheckDeviceId(string deviceId )
+        {
+            try
+            {         
+                using (var client = new qurantine.service.QurantineClient())
+                {
+                    var res= await client.GetPersonByDeviceAsync(deviceId);
+                    if (res != null)
+                    {
+                        HttpContext.Session.Set(SessionKeyName, deviceId);
+                        return Ok(res);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+             
+            }
+            return BadRequest();
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
