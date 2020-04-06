@@ -1,7 +1,7 @@
 ﻿@model WebApplication.Models.QuarantineModel
 
 @{
-    ViewData["Title"] = "QuarantinePersonInfo";
+    ViewData["Title"] = "Карантин " + Model.Person.Name;
 }
     <script type="text/javascript">
     if (navigator.geolocation) {
@@ -42,14 +42,13 @@
         }).addTo(mymap);
 
         var marker = L.marker([lat, long]).addTo(mymap).bindPopup("@Model.Person.Name").openPopup();
-          
         @*L.circle([ @Model.Person.Zona.Lat,  @Model.Person.Zona.Lon], {
             color: 'red',
             fillColor: '#f03',
             fillOpacity: 0.5,
             radius:  @Model.Person.Zona.Radius
         }).addTo(mymap);*@
-    
+
         }
     </script>
 <div>
