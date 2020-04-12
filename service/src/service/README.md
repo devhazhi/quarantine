@@ -1,4 +1,2 @@
-# address_service
+# quarantine
 
-сервис для получения адресных данных
-rc
