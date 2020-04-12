@@ -91,6 +91,7 @@ service/.idea/.idea.service.dir/.idea/misc.xml
 service/.idea/.idea.service.dir/.idea/modules.xml
 service/.idea/.idea.service.dir/.idea/projectSettingsUpdater.xml
 service/.idea/.idea.service.dir/.idea/workspace.xml
+service/quarantinemap-e57f2952a943.json
 service/.vs/service/v16/.suo
 service/.vs/service/DesignTimeBuild/.dtbcache
 service/appsettings.json
@@ -98,3 +99,5 @@ WebApplication/WebApplication/.config
 WebApplication/WebApplication/bin
 WebApplication/WebApplication/obj
 WebApplication/.vs
+service/.vs/service/DesignTimeBuild/.dtbcache.v2
+service/.vs/service/DesignTimeBuild/.dtbcache.v2
