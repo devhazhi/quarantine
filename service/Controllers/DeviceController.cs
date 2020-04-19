@@ -19,21 +19,22 @@ namespace service.Controllers
     public partial class DeviceController : ControllerBase
     {
 
-        public DeviceController(IConfiguration configuration){
-           Config = new ConfigWrap(configuration);
-            _repository = Config.Repository;           
+        public DeviceController(IDataRepository repository, IConfiguration configuration)
+        {         
+            _repository = repository;
+            MaxDeviceFileSizeBytes = int.Parse(configuration["Data:MaxDeviceFileSizeBytes"]);
         }
 
-        public ConfigWrap Config { get; }
-
         private IDataRepository _repository;
+
+        public int MaxDeviceFileSizeBytes { get; }
 
         [HttpGet]
         public async Task<ActionResult<PersonObject>> GetPersonByDevice(string device_id)
         {
             try
             {
-                var person = await _repository.GetPerson(device_id: device_id);
+                var person =  await _repository.GetPerson(device_id: device_id);
                 if (person != null && person.HasQuarantineStop == false) return Ok(person.Person);
                 return null;
             }
@@ -42,14 +43,63 @@ namespace service.Controllers
                 return BadRequest(ModelState);
             }
         }
+
         [HttpGet]
-        public async Task<ActionResult<Responce>> AddDevicePerson(long phone, string device_id)
+        public ActionResult<LocationWithTime[]> GetPersonLocations(long? phone, string device_id)
         {
             try
             {
-                var person = await _repository.GetPerson(phone);
-                if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
+                return _repository.GetPersonLocations(phone, device_id);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(ModelState);
+            }
+        }
+        [HttpGet]
+        public ActionResult<Location[]> GetPersonsLastLocations()
+        {
+            try
+            {
+                return _repository.GetPersonsLastLocations();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(ModelState);
+            }
+        }
+        [HttpGet]
+        public ActionResult<Location[]> GetZonaLocations()
+        {
+            try
+            {
+                return _repository.GetZonaLocations();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(ModelState);
+            }
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<Responce>> AddDevicePerson(long phone, string device_id, bool addQuarantine =false)
+        {
+            try
+            {
+                if (phone.ToString().Length < 10) return ErrorCode.NotSupport.getResponce();
                 if (!device_id.CheckFormatDeviceId()) return ErrorCode.FormatDeviceIdNotSupport.getResponce();
+                var person = await _repository.GetPerson(phone);
+                if (!person.Check())
+                {
+                    if (addQuarantine)
+                    {
+                        _repository.AddOrUpdatePerson(phone);
+                    }
+                    else
+                    {
+                        return ErrorCode.NotQuarantine.getResponce();
+                    }
+                }             
                 person = await _repository.GetPerson( device_id);
                 if (person == null)                
                     _repository.AddDevicePerson(phone, device_id);                
@@ -91,7 +141,13 @@ namespace service.Controllers
                 if (lat > -90 && lat < 90 && lon > -180 && lon < 180)
                 {
                     if (_repository.AddLocation(device_id, lat, lon, radius))
+                    {
+                        if(person.Person.Zone == null || person.Person.Zone.Lat == 0)
+                        {
+                            person.Person.Zone = new Location() { Lat = lat, Lon = lon, Radius = 100 };
+                        }
                         return new Responce() { IsOk = true };
+                    }
                 }
                 return ErrorCode.CoordinateFailed.getResponce();
             }
@@ -127,9 +183,9 @@ namespace service.Controllers
             {
                 if(deviceFile == null || deviceFile.DeviceId == null) return new Responce() { IsOk = false, Error="Нет данных об устройстве для записи" };
                 if (deviceFile.Data == null || deviceFile.Data.Length == 0) return new Responce() { IsOk = false, Error = "Нет данных об устройстве для записи" };
-                if (deviceFile.Data == null || deviceFile.Data.Length > Config.MaxDeviceFileSizeBytes)
+                if (deviceFile.Data == null || deviceFile.Data.Length > MaxDeviceFileSizeBytes)
                     return new Responce() { IsOk = false,
-                        Error = $"Данные привышают максимальный размер ({Config.MaxDeviceFileSizeBytes / 1024.0}кб)",
+                        Error = $"Данные привышают максимальный размер ({MaxDeviceFileSizeBytes / 1024.0}кб)",
                         ErrorCode = ErrorCode.NotSupport 
                     };
                 string extension = "";

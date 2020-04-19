@@ -1,0 +1,58 @@
+﻿@using System.Globalization;
+@model WebApplication.Models.LocationsModel
+@{
+    ViewData["Title"] = "Карантин";
+}
+
+<script type="text/javascript">
+    ymaps.ready(function () {
+        var myMap = new ymaps.Map('MapLocationId', {
+            center: [55.751574, 37.573856],
+            zoom: 9,
+            behaviors: ['default', 'scrollZoom']
+        }, {
+            searchControlProvider: 'yandex#search'
+        }),
+            clusterer = new ymaps.Clusterer({
+            preset: 'islands#invertedVioletClusterIcons',
+            groupByCoordinates: false,
+            clusterDisableClickZoom: true,
+            clusterHideIconOnBalloonOpen: false,
+            geoObjectHideIconOnBalloonOpen: false
+        }),
+            getPointData = function (index) {
+            return {
+                clusterCaption: 'Зона <strong>' + index + '</strong> радиус 100 м'
+            };
+        },
+            getPointOptions = function () {
+            return {
+                preset: 'islands#violetIcon'
+            };
+        },
+        points = [
+            @string.Join(", ", Model.Locations.Select(a=> $"[{a.Lat.ToString(CultureInfo.InvariantCulture)},{a.Lon.ToString(CultureInfo.InvariantCulture)}]"))
+        ],
+        geoObjects = [];
+
+    for(var i = 0, len = points.length; i < len; i++) {
+        geoObjects[i] = new ymaps.Placemark(points[i], getPointData(i), getPointOptions());
+    }
+
+    clusterer.options.set({
+        gridSize: 80,
+        clusterDisableClickZoom: true
+    });
+
+
+    clusterer.add(geoObjects);
+    myMap.geoObjects.add(clusterer);
+
+
+    myMap.setBounds(clusterer.getBounds(), {
+        checkZoomRange: true
+    });
+});
+</script>
+
+<div id="MapLocationId" style="width: 100%; height: 470px"></div>

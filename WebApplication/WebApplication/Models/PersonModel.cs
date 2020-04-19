@@ -25,6 +25,6 @@ namespace WebApplication.Models
         public string ZonaCooordinate => _model?.Zone != null ? _model.Zone.Lat.ToString() + " " + _model.Zone.Lon.ToString() : "Неизвестно";
 
     
-        public Location Zona => _model?.Zone ?? new Location();
+        public Location Zona => _model?.Zone;
     }
 }

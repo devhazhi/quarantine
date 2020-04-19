@@ -1,0 +1,20 @@
+﻿@if (Context.Session.Keys.Contains("Identity"))
+{
+    <script>
+        function clearLocalStorageIdentity() {
+            result = confirm('Точно хотите выйти?', '');
+            if (result) {
+                window.localStorage.setItem('Identity', '');
+                var url = "@Url.Action("Logout", "Home")";
+               window.location.href = url;
+            }
+        }
+
+    </script>
+
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="PersonLastLocation">Переданные координаты</a>
+        </li>
+
+    <button class="btn btn-outline-primary ml-md-3" onclick="clearLocalStorageIdentity();" contenteditable="false">Выход</button>
+}

@@ -15,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using service.BackgroundService;
 using service.Models;
 using service.Utils;
 
@@ -25,11 +26,9 @@ namespace service
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-            Config = new ConfigWrap(Configuration);
         }
 
         public IConfiguration Configuration { get; }
-        public ConfigWrap Config { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -37,6 +36,9 @@ namespace service
             services.AddControllers();
             services.AddMvc(options => options.EnableEndpointRouting = false);
             services.AddMvcCore().AddApiExplorer();
+            services.AddTransient<IDataRepository, MsSqlDbProvider>();
+            services.AddTransient<ICacheMemoryPersons, MsSqlDbProvider>();
+
             services.AddApiVersioning(option =>
             {
                 option.ReportApiVersions = true;
@@ -62,10 +64,8 @@ namespace service
                         });
                 }            
             });
-            Task.Factory.StartNew(() =>
-            {
 
-            });
+            services.AddHostedService<UpdatePersonInMemoryBackgroundService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

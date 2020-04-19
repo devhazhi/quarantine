@@ -9,64 +9,41 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Data.Sql;
 using System.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 
 namespace service.Models
 {
     public interface IDataRepository
     {
+        void AddOrUpdatePerson(long? phone);
         Task<PersonCacheObject> GetPerson(long? phone );
         Task<PersonCacheObject> GetPerson(string device_id);
         bool AddLocation(string device_id, double lat, double lon, int radius);
         void AddDevicePerson(long phone, string device_id);
         void AddDeviceNotificationToken(string device_id, string token);
         void AddDeviceFile(string device_id, string name);
-        NotificationSubscribe[] GetNotifications();
+        NotificationSubscribe[] GetNotifications(bool checkDb =false);
+        LocationWithTime[] GetPersonLocations(long? phone, string device_id);
+        Location[] GetPersonsLastLocations();
+        Location[] GetZonaLocations();
 
     }
-    public class MsSqlDbProvider : IDataRepository
-    {
-        public MsSqlDbProvider(ConfigWrap config)
-        {
-            QuarantineDbConnection = config.QuarantineDbConnection;
-            Radius = config.Radius;
-            if (_taskUpdatePhoneMemory == null)
-                lock (_lock)
-                {
-                    if (_taskUpdatePhoneMemory == null)
-                    {
-                        _taskUpdatePhoneMemory = Task.Run(() =>
-                        {
-                            while (true)
-                            {
-                                try
-                                {
-                                    CheckUpdatePhones();
-                                }catch(Exception e)
-                                {
-                                    // this ignore
-                                }
-                                try
-                                {
-                                    CheckNotifications();
-                                }
-                                catch (Exception e)
-                                {
-                                    // this ignore
-                                }
-                              
-                                Task.WaitAny(Task.Delay(5000));
 
-                            }
-                        });
-                    }
-                }
-        }
-        readonly static object _lock = new object();
+    public interface ICacheMemoryPersons
+    {
+        void CheckUpdatePersons();
+    }
+
+    public class MsSqlDbProvider : IDataRepository, ICacheMemoryPersons
+    {
         readonly static ConcurrentDictionary<string, PersonCacheObject> _cacheDevicePerson = new ConcurrentDictionary<string, PersonCacheObject>();
         readonly static ConcurrentDictionary<long, PersonCacheObject> _cachePhonePerson = new ConcurrentDictionary<long, PersonCacheObject>();
-        private static Task _taskUpdatePhoneMemory;
         public static DateTime? LastPersonUpdates { get; private set; }
-
+        public MsSqlDbProvider(IConfiguration configuration)
+        {
+            QuarantineDbConnection = configuration["ConnectionString:QuarantineDb"].ToString().Split('|');
+            Radius = int.Parse(configuration["Data:Radius"]);     
+        }
  
         private int QuarantineDbConnectionIndex;
 
@@ -92,7 +69,7 @@ namespace service.Models
                 NextConnection();
         }
 
-        private void CheckUpdatePhones()
+        public void CheckUpdatePersons()
         {
             if (!LastPersonUpdates.HasValue || LastPersonUpdates < DateTime.UtcNow.AddMinutes(-1))
             {
@@ -104,36 +81,28 @@ namespace service.Models
 IF(@lastTime is null or EXISTS(SELECT 1 FROM [ServiceTimestamp]
   WHERE [service_code] = 'Person' and last_start > @lastTime))
 BEGIN
-    SELECT 
+      SELECT 
     isnull(isnull(name_first, name_last), name_patr) as name,
     [quarantine_location].EnvelopeCenter().Lat as lat ,
     [quarantine_location].EnvelopeCenter().Long as lon,
     p.quarantine_stop,
     p.phone,
     pd.device_id,
-    dnt.token
+    dnt.token, 
+	  fbl.feedback_location.EnvelopeCenter().Lat as lastlat ,
+   fbl.feedback_location.EnvelopeCenter().Long as lastlon	,
+   fbl.feedback_time
       FROM Person p
       left join [PersonDevice] pd on pd.[phone] = p.phone
-      left join DeviceNotificationToken dnt on dnt.device_id = pd.device_id
+      left join DeviceNotificationToken dnt on dnt.device_id = pd.device_id  
+	  outer apply(select top(1) fb.* from Feedback fb where fb.person_id = p.phone order by feedback_time desc ) as fbl
 END
 ", (dr) =>
                          {
                              var phone = dr.GetInt64(4);
                              return new
                              {
-                                 Person = _cachePhonePerson.AddOrUpdate(phone,
-                                 (p)=> new PersonCacheObject() { Person = GetPersonFromReader(dr), LastUpdate = requestTime },
-                                 (p, old)=>
-                                 {
-                                     if (old.LastUpdate == requestTime)
-                                         return old;
-                                     return new PersonCacheObject()
-                                     {
-                                         Person = GetPersonFromReader(dr),
-                                         LastUpdate = requestTime,
-                                         LastLocationUpdateRequest = old.LastLocationUpdateRequest,
-                                     };
-                                 }),
+                                 Person = GetPersons(dr, requestTime, phone),
                                  Phone = phone,
                                  DeviceId = dr.GetNullableString(5)
                              };
@@ -159,11 +128,87 @@ END
                 }
             }
         }
+
+        private PersonCacheObject GetPersons(IDataReader reader, DateTime requestTime, long phoneRes)
+        {
+            return _cachePhonePerson.AddOrUpdate(phoneRes,
+                        (p) => new PersonCacheObject()
+                        {
+                            Person = GetPersonFromReader(reader),
+                            LastUpdate = requestTime,
+                            LastLocationUpdateRequest = reader.GetNullableDateTime(9),
+                            LastLocation = reader.IsDBNull(7) ? null : new Location()
+                            {
+                                Lat = (double)reader[7],
+                                Lon = (double)reader[8],
+                            },
+                        },
+                        (p, old) =>
+                        {
+                            if (old.LastUpdate == requestTime)
+                                return old;
+                            var fb_time = reader.GetNullableDateTime(9);
+                            return new PersonCacheObject()
+                            {
+                                Person = GetPersonFromReader(reader),
+                                LastLocation = reader.IsDBNull(7) ? null : new Location()
+                                {
+                                    Lat = (double)reader[7],
+                                    Lon = (double)reader[8],
+                                },
+                                LastUpdate = requestTime,
+                                LastLocationUpdateRequest = fb_time > old.LastLocationUpdateRequest ? fb_time : old.LastLocationUpdateRequest,
+                            };
+                        });
+        }
+
+        public Location[] GetZonaLocations()
+        {
+            return _cachePhonePerson.Values.Where(w => w != null && w.Person != null && w.Person.Zone != null).Select(a=>a.Person.Zone).ToArray();
+        }
+        public Location[] GetPersonsLastLocations()
+        {
+            return _cachePhonePerson.Values.Where(w => w != null && w.Person != null && w.LastLocation != null).Select(a => a.LastLocation).ToArray();
+        }
+        public LocationWithTime[] GetPersonLocations(long? phone, string device_id)
+        {
+            DateTime requestTime = DateTime.UtcNow;
+
+            using (var connection = new MsSqlWorker(GetConnection()))
+            {
+                return connection.Query(@"
+      SELECT 
+	  fbl.feedback_location.EnvelopeCenter().Lat as lastlat ,
+   fbl.feedback_location.EnvelopeCenter().Long as lastlon	,
+   fbl.feedback_time
+      FROM Feedback fbl
+      join [PersonDevice] pd on pd.[phone] = fbl.person_id
+    where (@phone is null or fbl.person_id = @phone )
+and (@device_id is null or pd.device_id = @device_id)
+", (reader) =>
+                {
+                   var time = reader.GetNullableDateTime(2);
+                    return new LocationWithTime()
+                    {
+
+                        Lat = (double)reader[0],
+                        Lon = (double)reader[1],
+                        UnixUtcTime = time.HasValue ? (long)time.Value.Subtract((new DateTime(1970, 1, 1))).TotalSeconds : (long?)null
+
+                    };
+                }, parameters: new SwParameters()
+                {    { "phone",phone  },
+                     { "device_id", device_id }
+                }).ToArray();
+
+
+            }
+        }
         public async Task<PersonCacheObject> GetPerson(long? phone)
         {
             PersonCacheObject person = null;
             if (phone.HasValue && _cachePhonePerson.TryGetValue(phone.Value, out person) && person != null) return person;
-            else if (phone.HasValue && _cachePhonePerson.Count == 0) return _cachePhonePerson[phone.Value] = await GetPersonFormDb(phone);
+            else if (phone.HasValue) return await GetPersonFormDb(phone);
             return null;
         }
         public async Task<PersonCacheObject> GetPerson(string device_id)
@@ -252,58 +297,48 @@ END
 
         private async Task<PersonCacheObject> GetPersonFormDb(long? phone = null, string? device_id = null)
         {
+            await Task.Delay(1);
             DateTime requestTime = DateTime.UtcNow;
-            using (var connection = new SqlConnection(GetConnection()))
+
+            using (var connection = new MsSqlWorker(GetConnection()))
             {
-                if (connection.State != ConnectionState.Open) await connection.OpenAsync();
-                using (var cmd = new SqlCommand(@"
-    SELECT 
+                return connection.Query(@"
+      SELECT 
     isnull(isnull(name_first, name_last), name_patr) as name,
     [quarantine_location].EnvelopeCenter().Lat as lat ,
     [quarantine_location].EnvelopeCenter().Long as lon,
     p.quarantine_stop,
     p.phone,
     pd.device_id,
-    dnt.token
+    dnt.token, 
+	  fbl.feedback_location.EnvelopeCenter().Lat as lastlat ,
+   fbl.feedback_location.EnvelopeCenter().Long as lastlon	,
+   fbl.feedback_time
       FROM Person p
       left join [PersonDevice] pd on pd.[phone] = p.phone
-      left join DeviceNotificationToken dnt on dnt.device_id = pd.device_id
+      left join DeviceNotificationToken dnt on dnt.device_id = pd.device_id  
+	  outer apply(select top(1) fb.* from Feedback fb where fb.person_id = p.phone order by feedback_time desc ) as fbl
     where (@phone is null or p.phone = @phone )
 and (@device_id is null or pd.device_id = @device_id)
-"))
+", (reader) =>
                 {
-                    cmd.Parameters.AddWithValue("@lastTime", LastPersonUpdates);
-                    PersonCacheObject personResult = null;
-                    using(var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow))
+
+                    var phoneRes = reader.GetInt64(4);
+                    var p = new
                     {
-                        while (await reader.ReadAsync())
-                        {
-                            var phoneRes = reader.GetInt64(4);
-                            var p = new
-                            {
-                                Person = _cachePhonePerson.AddOrUpdate(phoneRes,
-                                (p) => new PersonCacheObject() { Person = GetPersonFromReader(reader), LastUpdate = requestTime },
-                                (p, old) =>
-                                {
-                                    if (old.LastUpdate == requestTime)
-                                        return old;
-                                    return new PersonCacheObject()
-                                    {
-                                        Person = GetPersonFromReader(reader),
-                                        LastUpdate = requestTime,
-                                        LastLocationUpdateRequest = old.LastLocationUpdateRequest,
-                                    };
-                                }),
-                                Phone = phoneRes,
-                                DeviceId = reader.GetNullableString(5)
-                            };
-                            if (p.DeviceId?.Length > 0)
-                                _cacheDevicePerson[p.DeviceId] = p.Person;
-                            personResult = p.Person;
-                        }
-                        return personResult;
-                    }
-                }
+                        Person =GetPersons(reader, requestTime, phoneRes),
+                        Phone = phoneRes,
+                        DeviceId = reader.GetNullableString(5)
+                    };
+                    if (p.DeviceId?.Length > 0)
+                        _cacheDevicePerson[p.DeviceId] = p.Person;
+                    return p.Person;
+                }, parameters: new SwParameters()
+                {    { "phone",phone  },
+                     { "device_id", device_id }
+                }).FirstOrDefault();
+
+
             }
         }
 
@@ -373,7 +408,7 @@ insert (device_id, name, recieved)
 	  end_time, 
 	  interval 
   from NotificationSubscribe*/
-        private void CheckNotifications()
+    private void CheckNotifications()
         {
             if (!LastNotificationUpdates.HasValue || LastNotificationUpdates < DateTime.UtcNow.AddMinutes(-1))
             {
@@ -413,11 +448,48 @@ End
             }
         }
 
-        public NotificationSubscribe[] GetNotifications()
+        public NotificationSubscribe[] GetNotifications(bool checkDb = false)
         {
-            if (NotificationSubscribes == null)
+            if (NotificationSubscribes == null || checkDb)
                 CheckNotifications();
             return NotificationSubscribes;
+        }
+
+        public void AddOrUpdatePerson(long? phone)
+        {
+            DateTime requestTime = DateTime.UtcNow;
+            using (var connection = new MsSqlWorker(GetConnection()))
+            {
+                connection.Exec(@"IF NOT EXISTS(select top(1) 1 from Person where phone = @phone) 
+BEGIN
+    INSERT INTO [dbo].[Person]
+               ([phone]
+               ,[name_first]
+               ,[quarantine_start]
+               ,[quarantine_stop])
+         VALUES
+               (@phone
+               ,cast(@phone as nvarchar(200))      
+               ,GETUTCDATE()
+               ,DATEADD(DAY, 14, GETUTCDATE()))
+END
+else BEGIN
+	update Person 
+	set quarantine_start = GETUTCDATE()
+	, quarantine_stop = DATEADD(DAY, 14, GETUTCDATE())
+	where phone =@phone
+END
+                                    ", parameters: new SwParameters
+                                            {
+                                                { "phone",phone.Value  },
+                                            });
+              
+            }
+            if (_cachePhonePerson.Count != 0)
+            {
+               var res = GetPersonFormDb(phone).Result;
+            }
+           
         }
     }
 }

@@ -9,6 +9,7 @@ namespace WebApplication.Models
     {
         public string DeviceId { get; set; }
         public string Phone { get; set; }
+        public bool AddQuarantine { get; set; }
         public string ErrorInfo { get; set; }
     }
 }

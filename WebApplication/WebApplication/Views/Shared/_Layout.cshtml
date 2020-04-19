@@ -1,43 +1,176 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"]</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
-          integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
-          crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
-            integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
-            crossorigin=""></script>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=cb7efa1c-b928-4323-a4e4-536d49795e45" type="text/javascript"></script>
+    <link rel="stylesheet" href="~/css/froala_blocks.min.css">
+    <link rel="stylesheet" href="~/css/css.css">
+    <link rel="stylesheet" href="~/css/font-awesome.min.css">
+    <link rel="stylesheet" href="~/css/froala_editor.pkgd.min.css">
+    <link rel="stylesheet" href="~/css/froala_style.min.css">
+    <style data-fp="">
+        body, html {
+            margin: 0;
+            height: 100%;
+        }
+
+            body.no-block {
+                flex-flow: column;
+                overflow-x: hidden;
+                display: flex;
+            }
+
+        body {
+            background: #DEDEDE;
+        }
+
+        .fp-no-block {
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-direction: column;
+            cursor: pointer;
+            color: #444;
+            display: none;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+            text-align: center;
+            background: #FFF;
+            transition: margin 0.25s linear 0.25s;
+        }
+
+            .fp-no-block:hover {
+                background: #EFEFEF;
+            }
+
+            .fp-no-block.fp-visible {
+                display: flex;
+            }
+
+        .fp-no-sections {
+            flex: 2;
+        }
+
+        .fp-no-block p {
+            margin: 0;
+        }
+
+        .fp-no-sections p + p {
+            font-size: 16px;
+            margin-top: 5px;
+        }
+
+        .fdb-block {
+            box-shadow: 0;
+            margin-bottom: 0;
+            transition: margin 0.25s linear 0.25s;
+        }
+
+        .fp-active {
+            box-shadow: 0px 0px 20px rgba(0,0,0,0.14), 0 0px 6px rgba(0,0,0,0.16);
+            -moz-box-shadow: 0px 0px 20px rgba(0,0,0,0.14), 0 0px 6px rgba(0,0,0,0.16);
+            -webkit-box-shadow: 0px 0px 20px rgba(0,0,0,0.14), 0 0px 6px rgba(0,0,0,0.16);
+            z-index: 9999;
+        }
+
+        body.fp-add-view [data-block-type],
+        body.fp-add-view .fp-no-block {
+            margin-bottom: 20px;
+        }
+
+        body.fp-add-view [data-block-type] {
+            user-select: none;
+            position: relative;
+        }
+
+        body.fp-add-view section[data-block-type] {
+            cursor: move;
+        }
+
+        body.fp-add-view [data-block-type]:after {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            display: block;
+            z-index: 10000;
+            content: "";
+        }
+
+        .fp-drop-placeholder {
+            height: 200px;
+            width: 100%;
+            border: solid 10px #0098f7;
+            background: #FFF;
+            margin-bottom: 20px;
+        }
+
+        .fp-dragging {
+            display: none;
+        }
+
+        .fr-popup {
+            z-index: 10000 !important;
+        }
+
+        .fdb-block {
+            padding: 3rem 0;
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Карантин</a>
+    <header data-block-type="headers" data-id="31" class="">
+        <div class="container">
+            <nav class="navbar navbar-expand-md">
+                <div class="col">
+                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                        <img src="~/images/quarantinemap.png" height="30" alt="image">
+                    </a>
+                </div>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
-                    <ul class="navbar-nav flex-grow-1">                    
+                 
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="PersonsZona">Метки зон карантина</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="PersonsLastLocation">Метки последних данных</a>
+                        </li>
+                        <partial name="_LoginPartial" />
                     </ul>
                 </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @RenderSection("Scripts", required: false)
+            </nav>
+        </div>
+    </header>
+    <section class="fdb-block" data-block-type="forms" data-id="32" draggable="true">
+        <div class="container">
+            @RenderBody()
+            </div>
+        </section>
+            <footer class="fdb-block footer-small" data-block-type="footers" data-id="41">
+                <div class="container">
+                    <div class="row text-center">
+                        <div class="col">
+                            <p>© 2020 DevCom. All Rights Reserved</p>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+            <script src="~/lib/jquery/dist/jquery.min.js"></script>
+            <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+            <script src="~/js/site.js" asp-append-version="true"></script>
+            <script src="~/js/popper.min.js"></script>
+            <script src="~/js/froala_editor.pkgd.min.js"></script>
+
+            @RenderSection("Scripts", required: false)
 </body>
 </html>

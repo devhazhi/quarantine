@@ -26,16 +26,19 @@ namespace WebApplication.Controllers
         {
             if (string.IsNullOrEmpty(HttpContext.Session.Get<string>(SessionKeyName)))
             {
-#if DEBUG
+#if DEBUG4
 
                 HttpContext.Session.Set<string>(SessionKeyName, "c11dd068-79e1-4024-9ad9-ff6e3842cb77");
 #else
-                var error = _lastResponceInfo?.Error;
+            
+           
+                var error = _lastResponceInfo;
                 _lastResponceInfo = null;
                 return View(new RegistryModel()
                 {
                     DeviceId = Guid.NewGuid().ToString("d"),
-                    ErrorInfo = error,
+                    ErrorInfo = error?.Error,
+                    AddQuarantine = error?.ErrorCode == ErrorCode._1
                 });
 #endif
             }
@@ -50,15 +53,17 @@ namespace WebApplication.Controllers
                 {
                     using (var client = new qurantine.service.QurantineClient())
                     {
-                        var res = await client.AddDevicePersonAsync(long.Parse(model.Phone), model.DeviceId);
-                        if (res == null || res.IsOk)
+                        var res = await client.AddDevicePersonAsync(long.Parse(model.Phone), model.DeviceId, model.AddQuarantine);
+                        if ( res.IsOk)
                         {
                             HttpContext.Session.Set(SessionKeyName, model.DeviceId);
                         }
                         else
                         {
-                            _lastResponceInfo = res;
-                            return RedirectToAction("Index");
+                            _lastResponceInfo = res ?? new Responce();
+                            if (_lastResponceInfo.Error == null)
+                                _lastResponceInfo.Error = "формат телефона не поддерживается или нет связи";
+                            return RedirectToAction("Index", "Home");
                         }
                     }
                 }
@@ -70,6 +75,52 @@ namespace WebApplication.Controllers
 
             }
             return RedirectToAction("QuarantinePersonInfo");
+        }
+
+        public async Task<ActionResult> PersonsZona()
+        {
+            using (var client = new qurantine.service.QurantineClient())
+            {
+                var res = await client.GetZonaLocationsAsync();
+                return View(new LocationsModel()
+                {
+                    Locations = res.ToArray()
+                });
+
+            }
+        }
+        public async Task<ActionResult> PersonsLastLocation()
+        {
+            using (var client = new qurantine.service.QurantineClient())
+            {
+                var res = await client.GetPersonsLastLocationsAsync();
+                return View(new LocationsModel()
+                {
+                    Locations = res.ToArray()
+                });
+
+            }
+        }
+        public async Task<ActionResult> PersonLastLocation()
+        {
+            using (var client = new qurantine.service.QurantineClient())
+            {
+                
+                var device_id = HttpContext.Session.Get<string>(SessionKeyName);
+                if (device_id?.Length > 1)
+                {
+                    var res = await client.GetPersonLocationsAsync(null, device_id);
+                    return View(new LocationsModel()
+                    {
+                        Locations = res.ToArray()
+                    });
+                }
+                else
+                {
+                   return  BadRequest();
+                }
+
+            }
         }
         [HttpGet]
         public async Task<IActionResult> AddLocation(double lat, double lon, double radius)
@@ -153,6 +204,11 @@ namespace WebApplication.Controllers
             return BadRequest();
         }
 
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Remove(SessionKeyName);
+            return RedirectToAction("Index");
+        }
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

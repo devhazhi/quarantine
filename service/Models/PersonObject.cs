@@ -8,6 +8,7 @@ namespace service.Models
     public class PersonCacheObject
     {
         public PersonObject Person { get; set; }
+        public Location LastLocation { get; set; }
         public DateTime? LastLocationUpdateRequest { get; set; }
         public DateTime? LastUpdate { get; set; }
         public bool HasQuarantineStop => Person.QuarantineStopUnix < (long)DateTime.UtcNow.Subtract(UnixStart).TotalSeconds;
@@ -16,7 +17,7 @@ namespace service.Models
     }
     public class PersonObject
     {
-        public Location Zone { get; set; }    
+        public Location Zone { get; set; }
         public string Name { get; set; }
         public long QuarantineStopUnix { get; set; }
         public string Token { get; set; }
@@ -28,6 +29,11 @@ namespace service.Models
         public double Lat { get; set; }
         public double Lon { get; set; }
         public double Radius { get; set; }
+    }
+
+    public class LocationWithTime : Location
+    {
+        public long? UnixUtcTime { get; set; }
     }
     public class Responce
     {
@@ -43,7 +49,6 @@ namespace service.Models
     }
     
     public enum DeviceFileTypeEnum : int { Jpeg = 1 };
-    [Flags]
     public enum ErrorCode : int { NotError = 0, NotQuarantine, NotDevice, FormatDeviceIdNotSupport, FormatTokenNotSupport, CoordinateFailed, AccessDeny, NotSupport };
 
 }

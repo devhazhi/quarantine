@@ -2,31 +2,68 @@
     ViewData["Title"] = "Регистрация";
 }
 
-<div id="divFormId"   >
-    <form method="post" asp-controller="Home" asp-action="Registry">
-        <input id="deviceId" type="hidden" value="@Model.DeviceId" name="DeviceId" />
-        <div class="form-row">
-            <div class="form-group col-md-6">
-                <label for="Phone">Введите свой номер телефона</label>
-                <input type="number" name="Phone" class="form-control" />
-            </div>
-        </div>
-        <input type="submit" value="Войти" class="btn btn-primary" />
-        <div class="col-sm-3">
-            <small id="passwordHelp" class="text-danger">
-                @Model.ErrorInfo
-            </small>
-        </div>
+    <div >
 
-    </form>
-</div>
+   
+                <div class="row justify-content-center">
+                    <div class="col-12 col-md-8 col-lg-6 text-center">
+                        <h1 id="captionId">Регистрация устройства</h1>
+                        <div class="input-group mt-4 mb-4" id="divFormId">
+                            <input id="phoneNumber" type="number" name="Phone" class="form-control" placeholder="Введите свой номер телефона">
+                            <div class="input-group-append">
 
-    <div class="spinner-border" role="status" id="loadingBarId" >
-        <span class="sr-only">Loading...</span>
+                                <button class="btn btn-primary" type="button" onclick="registry(false);">Войти</button>
+                            </div>
+                            @if (Model.AddQuarantine)
+                            {
+                                <button class="btn btn-primary" type="button" onclick="registry(true);">Добавить или обновить карантин</button>
+                            }
+                        </div>
+
+                        <div class="col-sm-12" id="errorInfo">
+                            <strong id="passwordHelp" class="text-danger">
+                                @Model.ErrorInfo
+                            </strong>
+                        </div>
+                      
+                        <div class="spinner-border" role="status" id="loadingBarId">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                
+  
     </div>
 
-    <script type="text/javascript">
+   
 
+    <script type="text/javascript">
+        function registry(addOrUpdateQuarantine) {
+            var form = document.createElement('form');
+            form.setAttribute('method', 'post');
+            form.setAttribute('action', '/Home/Registry');
+            var deviceId = document.createElement('input');
+            deviceId.setAttribute('type', 'hidden');
+            deviceId.setAttribute('name', 'DeviceId');
+            deviceId.setAttribute('value', '@Model.DeviceId');
+
+            var phone = document.createElement('input');
+            phone.setAttribute('type', 'hidden');
+            phone.setAttribute('name', 'Phone');
+            phone.setAttribute('value', document.getElementById("phoneNumber").value);
+            form.appendChild(deviceId);
+            form.appendChild(phone);
+            if (addOrUpdateQuarantine) {
+                var update = document.createElement('input');
+                update.setAttribute('type', 'hidden');
+                update.setAttribute('name', 'AddQuarantine');
+                update.setAttribute('value', '@Model.AddQuarantine');
+                form.appendChild(update);
+            }
+            form.style.display = 'hidden';
+            document.body.appendChild(form)
+            form.submit();
+        }
     function getPersonByDevice(device_id, onSuccess, onError) {
         var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
         xhr.open(
@@ -39,28 +76,39 @@
                 onError();
         }
         xhr.send();
-    }
-    var res = window.localStorage.getItem('Identity');
-function showHideChangeStyle(x) {
-  if (x.style.display == "none") {
-    x.style.display = "block";
-  } else {
-    x.style.display = "none";
-  }
-}
-        if (res != null && res.length > 10){
-   document.getElementById("divFormId").style.display = "none";
-            getPersonByDevice(res, function () {
-        document.location.reload(true);
+        }
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        async function checkLocalDevice() {
+            console.log('check deviceId from local sorage.');
+            document.getElementById("loadingBarId").style.display = "none";
+            var res = window.localStorage.getItem('Identity');
+            if (res != null && res.length > 10) {
+                document.getElementById("captionId").innerHTML = "Проверка устройства";
+                document.getElementById("divFormId").style.display = "none";
+                document.getElementById("errorInfo").style.display = "none";
+                document.getElementById("loadingBarId").style.display = "block";
+                getPersonByDevice(res, function () {
+                    document.location.reload(true);
 
-            }, function(){
-                         document.getElementById("divFormId").style.display = "block";
-     window.localStorage.setItem('Identity','');
+                }, function () {
+                        document.getElementById("loadingBarId").style.display = "none";
+                        document.getElementById("divFormId").removeAttribute('style');
+                        document.getElementById("errorInfo").removeAttribute('style');
+                        document.getElementById("captionId").innerHTML = "Регистрация устройства";
 
-            });
+                    window.localStorage.setItem('Identity', '');
+
+                });
+
+            }
+
 
         }
-   document.getElementById("loadingBarId").style.display = "none";
+
+
+        checkLocalDevice();
     </script>
 
 
