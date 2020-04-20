@@ -20,9 +20,11 @@
             clusterHideIconOnBalloonOpen: false,
             geoObjectHideIconOnBalloonOpen: false
         }),
-            getPointData = function (index) {
-            return {
-                clusterCaption: 'Зона <strong>' + index + '</strong> радиус 100 м'
+            getPointData = function (timeInfo) {
+                return {
+                    hintContent: 'Место передачи координат(<strong> ' + timeInfo +'</strong >)',
+                    balloonContent: 'Место передачи координат (<strong>' + timeInfo + '</strong>)',
+                    clusterCaption: 'Место передачи координат (<strong>' + timeInfo +'</strong>)'
             };
         },
             getPointOptions = function () {
@@ -30,13 +32,13 @@
                 preset: 'islands#violetIcon'
             };
         },
-        points = [
-            @string.Join(", ", Model.Locations.Select(a=> $"[{a.Lat.ToString(CultureInfo.InvariantCulture)},{a.Lon.ToString(CultureInfo.InvariantCulture)}]"))
-        ],
+            points =
+            @Html.Raw(Json.Serialize(Model.Locations.OrderByDescending(w=>w.TimeInfo).ToArray()))
+            ,
         geoObjects = [];
 
-    for(var i = 0, len = points.length; i < len; i++) {
-        geoObjects[i] = new ymaps.Placemark(points[i], getPointData(i), getPointOptions());
+        for (var i = 0, len = points.length; i < len; i++) {
+            geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(points[i].timeInfo), getPointOptions());
     }
 
     clusterer.options.set({

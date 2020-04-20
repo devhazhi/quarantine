@@ -45,7 +45,7 @@
             var deviceId = document.createElement('input');
             deviceId.setAttribute('type', 'hidden');
             deviceId.setAttribute('name', 'DeviceId');
-            deviceId.setAttribute('value', '@Model.DeviceId');
+            deviceId.setAttribute('value', document.getElementById("token_div").innerHTML );
 
             var phone = document.createElement('input');
             phone.setAttribute('type', 'hidden');
@@ -80,11 +80,12 @@
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
-        async function checkLocalDevice() {
+        function checkLocalDevice() {
             console.log('check deviceId from local sorage.');
             document.getElementById("loadingBarId").style.display = "none";
             var res = window.localStorage.getItem('Identity');
             if (res != null && res.length > 10) {
+                window.localStorage.setItem('IdentityStart', '1');        
                 document.getElementById("captionId").innerHTML = "Проверка устройства";
                 document.getElementById("divFormId").style.display = "none";
                 document.getElementById("errorInfo").style.display = "none";
@@ -93,12 +94,18 @@
                     document.location.reload(true);
 
                 }, function () {
-                        document.getElementById("loadingBarId").style.display = "none";
-                        document.getElementById("divFormId").removeAttribute('style');
-                        document.getElementById("errorInfo").removeAttribute('style');
-                        document.getElementById("captionId").innerHTML = "Регистрация устройства";
-
-                    window.localStorage.setItem('Identity', '');
+                  
+                        var tokend = document.getElementById(tokenDivId);
+                        if (typeof tokend != 'undefined' && tokend.innerHTML != res) {
+                            window.localStorage.setItem('Identity', tokend.innerHTML);
+                            checkLocalDevice();
+                        } else {
+                            document.getElementById("loadingBarId").style.display = "none";
+                            document.getElementById("divFormId").removeAttribute('style');
+                            document.getElementById("errorInfo").removeAttribute('style');
+                            document.getElementById("captionId").innerHTML = "Регистрация устройства";
+                            window.localStorage.setItem('Identity', '');
+                        }
 
                 });
 

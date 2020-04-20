@@ -137,7 +137,7 @@ namespace service.Controllers
             {
                 var person = await _repository.GetPerson(device_id);
                 if (!person.Check()) return ErrorCode.NotQuarantine.getResponce();
-                if (person.LastLocationUpdateRequest < DateTime.UtcNow.AddSeconds(-30)) return new Responce() { IsOk = true };
+                if (person.LastLocationUpdateRequest > DateTime.UtcNow.AddSeconds(-10)) return new Responce() { IsOk = true };
                 if (lat > -90 && lat < 90 && lon > -180 && lon < 180)
                 {
                     if (_repository.AddLocation(device_id, lat, lon, radius))

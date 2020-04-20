@@ -53,6 +53,8 @@ namespace WebApplication.Controllers
                 {
                     using (var client = new qurantine.service.QurantineClient())
                     {
+                        if (model.DeviceId == null || model.DeviceId == string.Empty)
+                            model.DeviceId = Guid.NewGuid().ToString("D");
                         var res = await client.AddDevicePersonAsync(long.Parse(model.Phone), model.DeviceId, model.AddQuarantine);
                         if ( res.IsOk)
                         {

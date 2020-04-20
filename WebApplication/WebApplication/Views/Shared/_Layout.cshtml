@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" />
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=cb7efa1c-b928-4323-a4e4-536d49795e45" type="text/javascript"></script>
+    <link href="//cdnjs.cloudflare.com/ajax/libs/animate.css/3.2.0/animate.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/froala_blocks.min.css">
     <link rel="stylesheet" href="~/css/css.css">
     <link rel="stylesheet" href="~/css/font-awesome.min.css">
@@ -120,6 +121,11 @@
         .fdb-block {
             padding: 3rem 0;
         }
+
+        .animated {
+            -webkit-animation-iteration-count: infinite;
+            animation-iteration-count: infinite;
+        }
     </style>
 </head>
 <body>
@@ -136,7 +142,7 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
-                 
+
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="PersonsZona">Метки зон карантина</a>
@@ -154,23 +160,26 @@
     <section class="fdb-block" data-block-type="forms" data-id="32" draggable="true">
         <div class="container">
             @RenderBody()
-            </div>
-        </section>
-            <footer class="fdb-block footer-small" data-block-type="footers" data-id="41">
-                <div class="container">
-                    <div class="row text-center">
-                        <div class="col">
-                            <p>© 2020 DevCom. All Rights Reserved</p>
-                        </div>
-                    </div>
+        </div>
+    </section>
+    <footer class="fdb-block footer-small" data-block-type="footers" data-id="41">
+        <div class="container">
+            <div class="row text-center">
+                <div class="col">
+                    <p>© 2020 DevCom. All Rights Reserved</p>
                 </div>
-            </footer>
-            <script src="~/lib/jquery/dist/jquery.min.js"></script>
-            <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-            <script src="~/js/site.js" asp-append-version="true"></script>
-            <script src="~/js/popper.min.js"></script>
-            <script src="~/js/froala_editor.pkgd.min.js"></script>
+            </div>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js">
+    </script>
 
-            @RenderSection("Scripts", required: false)
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/popper.min.js"></script>
+    <script src="~/js/froala_editor.pkgd.min.js"></script>
+    <script src="~/js/bootstrap-notify.min.js"></script>
+    <partial name="FireBaseSettings" />
+    @RenderSection("Scripts", required: false)
 </body>
 </html>
