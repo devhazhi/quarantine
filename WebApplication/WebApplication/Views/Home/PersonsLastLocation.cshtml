@@ -14,45 +14,52 @@
             searchControlProvider: 'yandex#search'
         }),
             clusterer = new ymaps.Clusterer({
-            preset: 'islands#invertedVioletClusterIcons',
-            groupByCoordinates: false,
-            clusterDisableClickZoom: true,
-            clusterHideIconOnBalloonOpen: false,
-            geoObjectHideIconOnBalloonOpen: false
-        }),
-            getPointData = function (index) {
-            return {
-                clusterCaption: '<strong>' + index + '</strong> '
-            };
-        },
+                preset: 'islands#invertedVioletClusterIcons',
+                groupByCoordinates: false,
+                clusterDisableClickZoom: true,
+                clusterHideIconOnBalloonOpen: false,
+                geoObjectHideIconOnBalloonOpen: false
+            }),
+            getPointData = function (timeInfo) {
+                return {
+                    hintContent: 'Место передачи координат(<strong> ' + timeInfo + '</strong >)',
+                    balloonContent: 'Место передачи координат (<strong>' + timeInfo + '</strong>)',
+                    clusterCaption: 'Место передачи координат (<strong>' + timeInfo + '</strong>)'
+                };
+            },
             getPointOptions = function () {
-            return {
-                preset: 'islands#violetIcon'
-            };
-        },
-        points = [
-            @string.Join(", ", Model.Locations.Select(a=> $"[{a.Lat.ToString(CultureInfo.InvariantCulture)},{a.Lon.ToString(CultureInfo.InvariantCulture)}]"))
-        ],
-        geoObjects = [];
+                return {
+                    preset: 'islands#violetIcon'
+                };
+            },
+            geoObjects = [];
 
-    for(var i = 0, len = points.length; i < len; i++) {
-        geoObjects[i] = new ymaps.Placemark(points[i], getPointData(i), getPointOptions());
-    }
+        fetch('/Home/GetPersonsLastLocation')
+            .then((response) => {
+                return response.json();
+            })
+            .then((points) => {
+                for (var i = 0, len = points.length; i < len; i++) {
+                    geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(points[i].timeInfo), getPointOptions());
+                }
 
-    clusterer.options.set({
-        gridSize: 80,
-        clusterDisableClickZoom: true
+                clusterer.options.set({
+                    gridSize: 80,
+                    clusterDisableClickZoom: true
+                });
+
+
+                clusterer.add(geoObjects);
+                myMap.geoObjects.add(clusterer);
+
+
+                myMap.setBounds(clusterer.getBounds(), {
+                    checkZoomRange: true
+                });
+            });
+
+
     });
-
-
-    clusterer.add(geoObjects);
-    myMap.geoObjects.add(clusterer);
-
-
-    myMap.setBounds(clusterer.getBounds(), {
-        checkZoomRange: true
-    });
-});
 </script>
 
 <div id="MapLocationId" style="width: 100%; height: 470px"></div>

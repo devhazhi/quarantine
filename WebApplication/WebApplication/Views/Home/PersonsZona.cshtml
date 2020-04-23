@@ -20,11 +20,11 @@
             clusterHideIconOnBalloonOpen: false,
             geoObjectHideIconOnBalloonOpen: false
         }),
-            getPointData = function (timeInfo) {
+            getPointData = function (index) {
                 return {
-                    hintContent: 'Место передачи координат(<strong> ' + timeInfo +'</strong >)',
-                    balloonContent: 'Место передачи координат (<strong>' + timeInfo + '</strong>)',
-                    clusterCaption: 'Место передачи координат (<strong>' + timeInfo +'</strong>)'
+                    hintContent: 'Зона карантина '+index,
+                    balloonContent: 'Зона карантина ' + index,
+                    clusterCaption: 'Зона карантина ' + index
             };
         },
             getPointOptions = function () {
@@ -38,7 +38,7 @@
         geoObjects = [];
 
         for (var i = 0, len = points.length; i < len; i++) {
-            geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(points[i].timeInfo), getPointOptions());
+            geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(i), getPointOptions());
     }
 
     clusterer.options.set({
@@ -54,6 +54,7 @@
     myMap.setBounds(clusterer.getBounds(), {
         checkZoomRange: true
     });
+        
 });
 </script>
 

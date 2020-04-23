@@ -91,38 +91,23 @@ namespace WebApplication.Controllers
 
             }
         }
-        public async Task<ActionResult> PersonsLastLocation()
+        public ActionResult PersonsLastLocation()
         {
-            using (var client = new qurantine.service.QurantineClient())
+            return View(new LocationsModel()
             {
-                var res = await client.GetPersonsLastLocationsAsync();
-                return View(new LocationsModel()
-                {
-                    Locations = res.ToArray()
-                });
+              
+            });
 
-            }
+
         }
-        public async Task<ActionResult> PersonLastLocation()
+        public ActionResult PersonLastLocation()
         {
-            using (var client = new qurantine.service.QurantineClient())
-            {
-                
-                var device_id = HttpContext.Session.Get<string>(SessionKeyName);
-                if (device_id?.Length > 1)
-                {
-                    var res = await client.GetPersonLocationsAsync(null, device_id);
+        
                     return View(new LocationsModel()
                     {
-                        Locations = res.ToArray()
+         
                     });
-                }
-                else
-                {
-                   return  BadRequest();
-                }
-
-            }
+              
         }
         [HttpGet]
         public async Task<IActionResult> AddLocation(double lat, double lon, double radius)
@@ -157,6 +142,38 @@ namespace WebApplication.Controllers
 
             }
             return RedirectToAction("Index");
+        }
+        public async Task<IActionResult> GetLocations()
+        {
+            using (var client = new qurantine.service.QurantineClient())
+            {
+
+                var device_id = HttpContext.Session.Get<string>(SessionKeyName);
+                if (device_id?.Length > 1)
+                {
+                    var res = await client.GetPersonLocationsAsync(null, device_id);
+                    return Ok(res.ToArray());
+                }
+                else
+                {
+                    return BadRequest();
+                }
+
+            }
+
+        }
+        public async Task<IActionResult> GetPersonsLastLocation()
+        {
+            using (var client = new qurantine.service.QurantineClient())
+            {
+
+              
+                    var res = await client.GetPersonsLastLocationsAsync();
+                    return Ok(res.ToArray());
+              
+
+            }
+
         }
         public async Task<IActionResult> QuarantinePersonInfo()
         {

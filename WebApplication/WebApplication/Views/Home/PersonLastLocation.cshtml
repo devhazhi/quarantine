@@ -31,29 +31,34 @@
             return {
                 preset: 'islands#violetIcon'
             };
-        },
-            points = 
-            @Html.Raw(Json.Serialize(Model.Locations.OrderByDescending(w=>w.TimeInfo).ToArray()))
-            ,
+        },           
         geoObjects = [];
 
-        for (var i = 0, len = points.length; i < len; i++) {
-            geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(points[i].timeInfo), getPointOptions());
-    }
+        fetch('/Home/GetLocations')
+            .then((response) => {
+                return response.json();
+            })
+            .then((points) => {
+                for (var i = 0, len = points.length; i < len; i++) {
+                    geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(points[i].timeInfo), getPointOptions());
+                }
 
-    clusterer.options.set({
-        gridSize: 80,
-        clusterDisableClickZoom: true
-    });
+                clusterer.options.set({
+                    gridSize: 80,
+                    clusterDisableClickZoom: true
+                });
 
 
-    clusterer.add(geoObjects);
-    myMap.geoObjects.add(clusterer);
+                clusterer.add(geoObjects);
+                myMap.geoObjects.add(clusterer);
 
 
-    myMap.setBounds(clusterer.getBounds(), {
-        checkZoomRange: true
-    });
+                myMap.setBounds(clusterer.getBounds(), {
+                    checkZoomRange: true
+                });
+            });
+
+      
 });
     </script>
 

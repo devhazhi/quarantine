@@ -168,7 +168,13 @@ END
         }
         public Location[] GetPersonsLastLocations()
         {
-            return _cachePhonePerson.Values.Where(w => w != null && w.Person != null && w.LastLocation != null).Select(a => a.LastLocation).ToArray();
+            return _cachePhonePerson.Values.Where(w => w != null && w.Person != null && w.LastLocation != null).Select(a => new LocationWithTime()
+            {
+                Lat = a.LastLocation.Lat,
+                Lon = a.LastLocation.Lon,
+                Radius = a.LastLocation.Radius
+            }).ToArray();
+              
         }
         public LocationWithTime[] GetPersonLocations(long? phone, string device_id)
         {
