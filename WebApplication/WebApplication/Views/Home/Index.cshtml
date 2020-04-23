@@ -39,30 +39,24 @@
 
     <script type="text/javascript">
         function registry(addOrUpdateQuarantine) {
-            var form = document.createElement('form');
-            form.setAttribute('method', 'post');
-            form.setAttribute('action', '/Home/Registry');
-            var deviceId = document.createElement('input');
-            deviceId.setAttribute('type', 'hidden');
-            deviceId.setAttribute('name', 'DeviceId');
-            deviceId.setAttribute('value', document.getElementById("token_div").innerHTML );
 
-            var phone = document.createElement('input');
-            phone.setAttribute('type', 'hidden');
-            phone.setAttribute('name', 'Phone');
-            phone.setAttribute('value', document.getElementById("phoneNumber").value);
-            form.appendChild(deviceId);
-            form.appendChild(phone);
-            if (addOrUpdateQuarantine) {
-                var update = document.createElement('input');
-                update.setAttribute('type', 'hidden');
-                update.setAttribute('name', 'AddQuarantine');
-                update.setAttribute('value', '@Model.AddQuarantine');
-                form.appendChild(update);
-            }
-            form.style.display = 'hidden';
-            document.body.appendChild(form)
-            form.submit();
+            postData('/api/v1/Device/AddDevicePerson', {
+                phone:  document.getElementById("phoneNumber").value,
+                deviceId:  document.getElementById("token_div").innerHTML,
+                AddQuarantine: addOrUpdateQuarantine
+                })
+                .then((data) => {
+                    if (data.isOk) {
+                        document.location.href = "";
+                    } else {
+                        if (data.error) {
+                            alert(data.error);
+                        }
+                        else alert('Ошибка регистрации!');
+                    }
+                    console.log(data); // JSON data parsed by `response.json()` call
+                });
+
         }
     function getPersonByDevice(device_id, onSuccess, onError) {
         var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
@@ -85,7 +79,7 @@
             document.getElementById("loadingBarId").style.display = "none";
             var res = window.localStorage.getItem('Identity');
             if (res != null && res.length > 10) {
-                window.localStorage.setItem('IdentityStart', '1');        
+                window.localStorage.setItem('IdentityStart', '1');
                 document.getElementById("captionId").innerHTML = "Проверка устройства";
                 document.getElementById("divFormId").style.display = "none";
                 document.getElementById("errorInfo").style.display = "none";
@@ -94,7 +88,7 @@
                     document.location.reload(true);
 
                 }, function () {
-                  
+
                         var tokend = document.getElementById(tokenDivId);
                         if (typeof tokend != 'undefined' && tokend.innerHTML != res) {
                             window.localStorage.setItem('Identity', tokend.innerHTML);

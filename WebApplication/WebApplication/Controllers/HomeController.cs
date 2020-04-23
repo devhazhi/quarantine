@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using WebApplication.Models;
 using WebApplication.Extensions;
-using qurantine.service;
+using service.Models;
 
 namespace WebApplication.Controllers
 {
@@ -15,11 +15,13 @@ namespace WebApplication.Controllers
     {
         private const string SessionKeyName = "Identity";
         private readonly ILogger<HomeController> _logger;
+        private readonly IDataRepository _repository;
         private static Responce _lastResponceInfo;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, IDataRepository repository)
         {
             _logger = logger;
+            _repository = repository;
         }
 
         public IActionResult Index()
@@ -38,161 +40,52 @@ namespace WebApplication.Controllers
                 {
                     DeviceId = Guid.NewGuid().ToString("d"),
                     ErrorInfo = error?.Error,
-                    AddQuarantine = error?.ErrorCode == ErrorCode._1
+                    AddQuarantine = true
                 });
 #endif
             }
             return RedirectToAction( "QuarantinePersonInfo");
         }
         [HttpPost]
-        public async Task<IActionResult> Registry(RegistryModel model)
+        public IActionResult Registry(RegistryModel model)
         {
             if (string.IsNullOrEmpty(HttpContext.Session.Get<string>(SessionKeyName)))
             {
-                try
-                {
-                    using (var client = new qurantine.service.QurantineClient())
-                    {
-                        if (model.DeviceId == null || model.DeviceId == string.Empty)
-                            model.DeviceId = Guid.NewGuid().ToString("D");
-                        var res = await client.AddDevicePersonAsync(long.Parse(model.Phone), model.DeviceId, model.AddQuarantine);
-                        if ( res.IsOk)
-                        {
-                            HttpContext.Session.Set(SessionKeyName, model.DeviceId);
-                        }
-                        else
-                        {
-                            _lastResponceInfo = res ?? new Responce();
-                            if (_lastResponceInfo.Error == null)
-                                _lastResponceInfo.Error = "формат телефона не поддерживается или нет связи";
-                            return RedirectToAction("Index", "Home");
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    _lastResponceInfo = new Responce() { Error = e.Message };
-                    return RedirectToAction("Index");
-                }
-
+                return RedirectToAction("Index");
             }
             return RedirectToAction("QuarantinePersonInfo");
         }
 
-        public async Task<ActionResult> PersonsZona()
+        public ActionResult PersonsZona()
         {
-            using (var client = new qurantine.service.QurantineClient())
-            {
-                var res = await client.GetZonaLocationsAsync();
-                return View(new LocationsModel()
-                {
-                    Locations = res.ToArray()
-                });
-
-            }
+            return View();
         }
         public ActionResult PersonsLastLocation()
         {
-            return View(new LocationsModel()
-            {
-              
-            });
-
-
+            return View();
         }
         public ActionResult PersonLastLocation()
         {
-        
-                    return View(new LocationsModel()
-                    {
-         
-                    });
-              
+            return View();
         }
-        [HttpGet]
-        public async Task<IActionResult> AddLocation(double lat, double lon, double radius)
-        {
-            var deviceId = HttpContext.Session.Get<string>(SessionKeyName);
-            if (!string.IsNullOrEmpty(deviceId))
-            {
-                try
-                {
-                    using (var client = new qurantine.service.QurantineClient())
-                    {
-                        var res = await client.AddLocationAsync(deviceId, lat, lon, (int)radius);
-                        if (res == null || res.IsOk)
-                        {
 
-                            _lastResponceInfo = null;
-                            return Ok();
-                        }
-                        else
-                        {
-                            _lastResponceInfo = res;
-                            return RedirectToAction("QuarantinePersonInfo");
-                        }
-
-                    }
-                }
-                catch (Exception e)
-                {
-                    _lastResponceInfo = new Responce() { Error = e.Message };
-                    return RedirectToAction("QuarantinePersonInfo");
-                }
-
-            }
-            return RedirectToAction("Index");
-        }
-        public async Task<IActionResult> GetLocations()
-        {
-            using (var client = new qurantine.service.QurantineClient())
-            {
-
-                var device_id = HttpContext.Session.Get<string>(SessionKeyName);
-                if (device_id?.Length > 1)
-                {
-                    var res = await client.GetPersonLocationsAsync(null, device_id);
-                    return Ok(res.ToArray());
-                }
-                else
-                {
-                    return BadRequest();
-                }
-
-            }
-
-        }
-        public async Task<IActionResult> GetPersonsLastLocation()
-        {
-            using (var client = new qurantine.service.QurantineClient())
-            {
-
-              
-                    var res = await client.GetPersonsLastLocationsAsync();
-                    return Ok(res.ToArray());
-              
-
-            }
-
-        }
         public async Task<IActionResult> QuarantinePersonInfo()
         {
             try
             {
                 var deviceId = HttpContext.Session.Get<string>(SessionKeyName);
                 if (deviceId == null || deviceId.Length == 0) return Redirect("Index");
-                using (var client = new qurantine.service.QurantineClient())
+
+                var res = await _repository.GetPerson(HttpContext.Session.Get<string>(SessionKeyName));
+                return View(new QuarantineModel()
                 {
+                    Person = new PersonModel(res.Person),
+                    DeviceId = deviceId,
 
-                    var res = await client.GetPersonByDeviceAsync(HttpContext.Session.Get<string>(SessionKeyName));
-                    return View(new QuarantineModel()
-                    {
-                        Person = new PersonModel(res),
-                        DeviceId = deviceId,
+                });
 
-                    });
-                }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _lastResponceInfo = new Responce()
                 {
@@ -200,27 +93,6 @@ namespace WebApplication.Controllers
                 };
                 return RedirectToAction("Error");
             }
-        }
-        [HttpGet]
-        public async Task<ActionResult<PersonObject>> CheckDeviceId(string deviceId )
-        {
-            try
-            {         
-                using (var client = new qurantine.service.QurantineClient())
-                {
-                    var res= await client.GetPersonByDeviceAsync(deviceId);
-                    if (res != null)
-                    {
-                        HttpContext.Session.Set(SessionKeyName, deviceId);
-                        return Ok(res);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-             
-            }
-            return BadRequest();
         }
 
         public IActionResult Logout()
