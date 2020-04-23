@@ -47,12 +47,39 @@
                 })
                 .then((data) => {
                     if (data.isOk) {
+                        notifyMessage({
+                            data: {
+                                notifyType: "success"
+                            },
+                            notification: {
+                                title: "Спасибо!",
+                                body: ""
+                            }
+                        });
                         document.location.href = "";
                     } else {
                         if (data.error) {
-                            alert(data.error);
+                            notifyMessage({
+                                data: {
+                                    notifyType: "danger"
+                                },
+                                notification: {
+                                    title: "Ошибка!",
+                                    body: data.error
+                                }
+                            });
                         }
-                        else alert('Ошибка регистрации!');
+                        else {
+                            notifyMessage({
+                                data: {
+                                    notifyType: "danger"
+                                },
+                                notification: {
+                                    title: "Ошибка!",
+                                    body: "Регистрация невозможна"
+                                }
+                            });
+                        }
                     }
                     console.log(data); // JSON data parsed by `response.json()` call
                 });

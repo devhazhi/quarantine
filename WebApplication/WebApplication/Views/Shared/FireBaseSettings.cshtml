@@ -65,7 +65,7 @@
         console.log('Message received. ', payload);
         // [START_EXCLUDE]
         // Update the UI to include the received message.
-        appendMessage(payload);
+        notifyMessage(payload);
         // [END_EXCLUDE]
     });
     // [END receive_message]
@@ -178,7 +178,7 @@
 
     window.localStorage.getItem('IdentityStart')
     // Add a message to the messages element.
-    function appendMessage(payload) {
+    function notifyMessage(payload) {
         var notifyTypeData = "danger"; // set default value
         if (typeof payload.data != "undefined" && typeof payload.data.notifyType != "undefined") {
             notifyTypeData = payload.data.notifyType;
@@ -204,7 +204,7 @@
         });
     }
     //var obj = { notification: { title:"help", body:"me"} };
-    //appendMessage(obj);
+    //notifyMessage(obj);
     // Clear the messages element of all children.
     function clearMessages() {
         const messagesElement = document.querySelector('#messages');
