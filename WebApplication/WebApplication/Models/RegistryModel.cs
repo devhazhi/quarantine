@@ -8,7 +8,6 @@ namespace WebApplication.Models
     public class RegistryModel
     {
         public string DeviceId { get; set; }
-        public long Phone { get; set; }
         public bool AddQuarantine { get; set; }
         public string ErrorInfo { get; set; }
     }

@@ -4,7 +4,7 @@
     ViewData["Title"] = "Карантин";
 }
 
-<script type="text/javascript">
+    <script type="text/javascript">
     ymaps.ready(function () {
         var myMap = new ymaps.Map('MapLocationId', {
             center: [55.751574, 37.573856],
@@ -14,48 +14,49 @@
             searchControlProvider: 'yandex#search'
         }),
             clusterer = new ymaps.Clusterer({
-            preset: 'islands#invertedVioletClusterIcons',
-            groupByCoordinates: false,
-            clusterDisableClickZoom: true,
-            clusterHideIconOnBalloonOpen: false,
-            geoObjectHideIconOnBalloonOpen: false
-        }),
+                preset: 'islands#invertedVioletClusterIcons',
+                groupByCoordinates: false,
+                clusterDisableClickZoom: true,
+                clusterHideIconOnBalloonOpen: false,
+                geoObjectHideIconOnBalloonOpen: false
+            }),
             getPointData = function (index) {
                 return {
-                    hintContent: 'Зона карантина '+index,
+                    hintContent: 'Зона карантина ' + index,
                     balloonContent: 'Зона карантина ' + index,
                     clusterCaption: 'Зона карантина ' + index
-            };
-        },
+                };
+            },
             getPointOptions = function () {
-            return {
-                preset: 'islands#violetIcon'
+                return {
+                    preset: 'islands#violetIcon'
+                };
             };
-        },
-            points =
-            @Html.Raw(Json.Serialize(Model.Locations.OrderByDescending(w=>w.TimeInfo).ToArray()))
-            ,
-        geoObjects = [];
+        var geoObjects = [];
+        fetch('/api/v1/Device/GetZonaLocations')
+            .then((response) => {
+                return response.json();
+            })
+            .then((points) => {
+                for (var i = 0, len = points.length; i < len; i++) {
+                    geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(i), getPointOptions());
+                }
 
-        for (var i = 0, len = points.length; i < len; i++) {
-            geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(i), getPointOptions());
-    }
-
-    clusterer.options.set({
-        gridSize: 80,
-        clusterDisableClickZoom: true
-    });
-
-
-    clusterer.add(geoObjects);
-    myMap.geoObjects.add(clusterer);
+                clusterer.options.set({
+                    gridSize: 80,
+                    clusterDisableClickZoom: true
+                });
 
 
-    myMap.setBounds(clusterer.getBounds(), {
-        checkZoomRange: true
-    });
-        
+                clusterer.add(geoObjects);
+                myMap.geoObjects.add(clusterer);
+
+
+                myMap.setBounds(clusterer.getBounds(), {
+                    checkZoomRange: true
+                });
+            });
 });
-</script>
+    </script>
 
 <div id="MapLocationId" style="width: 100%; height: 470px"></div>

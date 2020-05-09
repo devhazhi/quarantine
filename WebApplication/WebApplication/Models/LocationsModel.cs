@@ -1,4 +1,4 @@
-﻿using qurantine.service;
+﻿using service.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ namespace WebApplication.Models
 {
     public class LocationsModel
     {
-        public Location[] Locations { get; set; }
+        public LocationWithTime[] Locations { get; set; }
 
     }
 }

@@ -34,7 +34,7 @@
         },           
         geoObjects = [];
 
-        fetch('/Home/GetLocations')
+        fetch('/api/v1/Device/GetPersonLocations')
             .then((response) => {
                 return response.json();
             })

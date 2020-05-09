@@ -66,6 +66,7 @@ namespace WebApplication
 
             app.UseAuthorization();
             app.UseSession();
+            app.UseCors(a => a.AllowAnyHeader().AllowAnyOrigin());
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(

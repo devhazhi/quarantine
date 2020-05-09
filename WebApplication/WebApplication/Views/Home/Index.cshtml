@@ -12,20 +12,22 @@
                             <input id="phoneNumber" type="number" name="Phone" class="form-control" placeholder="Введите свой номер телефона">
                             <div class="input-group-append">
 
-                                <button class="btn btn-primary" type="button" onclick="registry(false);">Войти</button>
+                                <button class="btn btn-success" type="button" onclick="registry(false);">Войти</button>
                             </div>
                             @if (Model.AddQuarantine)
                             {
-                                <button class="btn btn-primary" type="button" onclick="registry(true);">Добавить или обновить карантин</button>
+                                <div class="col-sm-12">
+                                    <button class="btn btn-light" type="button" onclick="registry(true);">Добавить или обновить карантин</button>
+                                </div>
                             }
                         </div>
-
+                      
                         <div class="col-sm-12" id="errorInfo">
                             <strong id="passwordHelp" class="text-danger">
                                 @Model.ErrorInfo
                             </strong>
                         </div>
-                      
+
                         <div class="spinner-border" role="status" id="loadingBarId">
                             <span class="sr-only">Loading...</span>
                         </div>
@@ -39,11 +41,14 @@
 
     <script type="text/javascript">
         function registry(addOrUpdateQuarantine) {
+            var deviceTokenId = document.getElementById("token_div").innerHTML;
+            if (deviceTokenId == null || deviceTokenId.length < 10)
+                deviceTokenId = "@Model.DeviceId";
 
             postData('/api/v1/Device/AddDevicePerson', {
-                phone:  document.getElementById("phoneNumber").value,
-                deviceId:  document.getElementById("token_div").innerHTML,
-                AddQuarantine: addOrUpdateQuarantine
+                phone: document.getElementById("phoneNumber").value,
+                deviceId: deviceTokenId,
+                addQuarantine: addOrUpdateQuarantine
                 })
                 .then((data) => {
                     if (data.isOk) {
@@ -56,6 +61,7 @@
                                 body: ""
                             }
                         });
+                        window.localStorage.setItem('Identity', deviceTokenId);
                         document.location.href = "";
                     } else {
                         if (data.error) {
@@ -82,24 +88,28 @@
                         }
                     }
                     console.log(data); // JSON data parsed by `response.json()` call
+                }, (reject) => {
+                        notifyMessage({
+                            data: {
+                                notifyType: "danger"
+                            },
+                            notification: {
+                                title: "Ошибка!",
+                                body: "Регистрация временно невозможна"
+                            }
+                        });
                 });
 
         }
-    function getPersonByDevice(device_id, onSuccess, onError) {
-        var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
-        xhr.open(
-            'GET',
-            '/Home/CheckDeviceId?deviceid=' + device_id);
-        xhr.onreadystatechange = function () {
-            if (xhr.status == 200)
-                onSuccess();
-            else
-                onError();
-        }
-        xhr.send();
-        }
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
+        function getPersonByDevice(device_id, onSuccess, onError) {
+            fetch('/api/v1/Device/GetPersonByDevice' + device_id)
+                .then((response) => {
+                    return response.json();
+                })
+                .then((res) => {
+                    console.log(res);
+                    onSuccess();
+                }, (r) => { onError(); });
         }
         function checkLocalDevice() {
             console.log('check deviceId from local sorage.');
@@ -114,8 +124,7 @@
                 getPersonByDevice(res, function () {
                     document.location.reload(true);
 
-                }, function () {
-
+                }, function () {                    
                         var tokend = document.getElementById(tokenDivId);
                         if (typeof tokend != 'undefined' && tokend.innerHTML != res) {
                             window.localStorage.setItem('Identity', tokend.innerHTML);

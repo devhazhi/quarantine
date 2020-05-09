@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using service.Models;
@@ -47,11 +48,11 @@ namespace service.Controllers
         }
 
         [HttpGet]
-        public ActionResult<LocationWithTime[]> GetPersonLocations(long? phone, string device_id)
+        public async Task<ActionResult<LocationWithTime[]>> GetPersonLocations(long? phone, string device_id)
         {
             try
             {
-                return _repository.GetPersonLocations(phone, device_id);
+                return (await _repository.GetPersonLocations(phone, device_id));
             }
             catch (Exception e)
             {
@@ -84,27 +85,28 @@ namespace service.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Responce>> AddDevicePerson(RegistryModel model)
+        public async Task<ActionResult<Responce>> AddDevicePerson(AttachDeviceInfo attachDevice)
         {
             try
             {
-                if (model.Phone.ToString().Length < 10) return ErrorCode.NotSupport.getResponce();
-                if (!model.DeviceId.CheckFormatDeviceId()) return ErrorCode.FormatDeviceIdNotSupport.getResponce();
-                var person = await _repository.GetPerson(model.Phone);
+                if (attachDevice.Phone.ToString().Length < 10) return ErrorCode.NotSupport.getResponce();
+                var phon = long.Parse(attachDevice.Phone);
+                if (!attachDevice.DeviceId.CheckFormatDeviceId()) return ErrorCode.FormatDeviceIdNotSupport.getResponce();
+                var person = await _repository.GetPerson(phon);
                 if (!person.Check())
                 {
-                    if (model.AddQuarantine)
+                    if (attachDevice.AddQuarantine)
                     {
-                        _repository.AddOrUpdatePerson(model.Phone);
+                        _repository.AddOrUpdatePerson(phon);
                     }
                     else
                     {
                         return ErrorCode.NotQuarantine.getResponce();
                     }
                 }             
-                person = await _repository.GetPerson( model.DeviceId);
+                person = await _repository.GetPerson(attachDevice.DeviceId);
                 if (person == null)                
-                    _repository.AddDevicePerson(model.Phone, model.DeviceId);                
+                    _repository.AddDevicePerson(phon, attachDevice.DeviceId);                
                 return new Responce() { IsOk = true };
             }
             catch (Exception e)
@@ -132,8 +134,8 @@ namespace service.Controllers
             }
         }
 
-        [HttpGet]
-        public async Task<ActionResult<Responce>> AddLocation(string device_id, double lat, double lon, int radius)
+        [HttpPost]
+        public async Task<ActionResult<Responce>> AddLocation([FromForm] string device_id, [FromForm]double lat, [FromForm] double lon, [FromForm] int radius)
         {
             try
             {
@@ -177,6 +179,11 @@ namespace service.Controllers
             {
                 return (NotificationSubscribeInfoResponce)e.getResponce();
             }
+        }
+        [HttpPost]
+        public async Task<ActionResult<Responce>> SendLocation(DeviceLocationInfo location)
+        {
+            return await AddLocation(location.DeviceId, location.Lat, location.Lon, location.Radius);
         }
         [HttpPost]
         public async Task<ActionResult<Responce>> AddFileByDevice(DeviceFileInfo deviceFile)

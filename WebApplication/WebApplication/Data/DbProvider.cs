@@ -23,7 +23,7 @@ namespace service.Models
         void AddDeviceNotificationToken(string device_id, string token);
         void AddDeviceFile(string device_id, string name);
         NotificationSubscribe[] GetNotifications(bool checkDb =false);
-        LocationWithTime[] GetPersonLocations(long? phone, string device_id);
+        Task<LocationWithTime[]> GetPersonLocations(long? phone, string device_id);
         Location[] GetPersonsLastLocations();
         Location[] GetZonaLocations();
 
@@ -41,7 +41,7 @@ namespace service.Models
         public static DateTime? LastPersonUpdates { get; private set; }
         public MsSqlDbProvider(IConfiguration configuration)
         {
-            QuarantineDbConnection = configuration["ConnectionString:QuarantineDb"].ToString().Split('|');
+            QuarantineDbConnection = configuration.GetConnectionString("QuarantineDb").ToString().Split('|');
             Radius = int.Parse(configuration["Data:Radius"]);     
         }
  
@@ -164,10 +164,12 @@ END
 
         public Location[] GetZonaLocations()
         {
+            if (_cachePhonePerson.Count == 0) CheckUpdatePersons();
             return _cachePhonePerson.Values.Where(w => w != null && w.Person != null && w.Person.Zone != null).Select(a=>a.Person.Zone).ToArray();
         }
         public Location[] GetPersonsLastLocations()
         {
+            if (_cachePhonePerson.Count == 0) CheckUpdatePersons();
             return _cachePhonePerson.Values.Where(w => w != null && w.Person != null && w.LastLocation != null).Select(a => new LocationWithTime()
             {
                 Lat = a.LastLocation.Lat,
@@ -176,38 +178,57 @@ END
             }).ToArray();
               
         }
-        public LocationWithTime[] GetPersonLocations(long? phone, string device_id)
+
+        public async Task<LocationWithTime[]> GetPersonLocations(long? phone, string device_id)
         {
-            DateTime requestTime = DateTime.UtcNow;
-
-            using (var connection = new MsSqlWorker(GetConnection()))
+            const string sqlCmd = @"
+if( ( @device_id is not null AND exists(select top(1) 1 from PersonDevice where device_id = @device_id))
+    or  @phone is not null ) 
+BEGIN
+      SELECT top(100)
+	      fbl.feedback_location.EnvelopeCenter().Lat as lastlat ,
+       fbl.feedback_location.EnvelopeCenter().Long as lastlon	,
+       fbl.feedback_time
+          FROM Feedback fbl
+          join [PersonDevice] pd on pd.[phone] = fbl.person_id
+        where (@phone is null or fbl.person_id = @phone )
+    and (@device_id is null or pd.device_id = @device_id)
+    order by fbl.feedback_time desc
+END";
+            try
             {
-                return connection.Query(@"
-      SELECT 
-	  fbl.feedback_location.EnvelopeCenter().Lat as lastlat ,
-   fbl.feedback_location.EnvelopeCenter().Long as lastlon	,
-   fbl.feedback_time
-      FROM Feedback fbl
-      join [PersonDevice] pd on pd.[phone] = fbl.person_id
-    where (@phone is null or fbl.person_id = @phone )
-and (@device_id is null or pd.device_id = @device_id)
-", (reader) =>
+                DateTime requestTime = DateTime.UtcNow;
+                using (var connection = new SqlConnection(GetConnection()))
                 {
-                   var time = reader.GetNullableDateTime(2);
-                    return new LocationWithTime()
+                    await connection.OpenAsync();
+                    using (var cmd = connection.CreateCommand())
                     {
-
-                        Lat = (double)reader[0],
-                        Lon = (double)reader[1],
-                        UnixUtcTime = time.HasValue ? (long)time.Value.Subtract((new DateTime(1970, 1, 1))).TotalSeconds : (long?)null
-
-                    };
-                }, parameters: new SwParameters()
-                {    { "phone",phone  },
-                     { "device_id", device_id }
-                }).ToArray();
-
-
+                        cmd.CommandText = sqlCmd;
+                        cmd.Parameters.AddWithValue("@phone", phone ?? Convert.DBNull);
+                        cmd.Parameters.AddWithValue("@device_id", device_id ?? Convert.DBNull);
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                  
+                            var list = new List<LocationWithTime>();
+                            while (await reader.ReadAsync())
+                            {
+                                var time = reader.GetNullableDateTime(2);
+                                list.Add(new LocationWithTime()
+                                {
+                                    Lat = (double)reader[0],
+                                    Lon = (double)reader[1],
+                                    UnixUtcTime = time.HasValue ? (long)time.Value.Subtract((new DateTime(1970, 1, 1))).TotalSeconds : (long?)null
+                                });
+                            }
+                            return list.ToArray();
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleExceptionSql(e);
+                throw;
             }
         }
         public async Task<PersonCacheObject> GetPerson(long? phone)

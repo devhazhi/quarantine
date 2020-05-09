@@ -115,3 +115,5 @@ WebApplication/.idea/.idea.WebApplication/.idea/misc.xml
 WebApplication/.idea/.idea.WebApplication/.idea/indexLayout.xml
 WebApplication/.idea/.idea.WebApplication/.idea/encodings.xml
 service/.vs/service/DesignTimeBuild/.dtbcache.v2
+WebApplication/.idea/
+WebApplication/node_modules/

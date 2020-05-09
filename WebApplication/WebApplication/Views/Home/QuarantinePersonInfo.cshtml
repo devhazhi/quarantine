@@ -11,20 +11,52 @@
 <script type="text/javascript">
 
         function addLocation( position, onResult, onError) {
-            var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
-            xhr.open(
-                'GET',
-                '/Home/AddLocation?' +
-                'lat=' + position.coords.latitude +
-                '&lon=' + position.coords.longitude +
-                '&radius=' + position.coords.accuracy);
-            xhr.onreadystatechange = function () {
-                if (xhr.status == 200)
-                    onResult('Координаты успешно переданы');
-                else
-                    onError('Нет связи');
-            }
-            xhr.send();
+
+            postData('/api/v1/Device/AddLocation', {
+                device_id: '@Model.DeviceId',
+                lat: position.coords.latitude,
+                lon: position.coords.longitude,
+                radius: position.coords.accuracy
+            }).then((data) => {
+                    if (data.isOk) {
+                        onResult('Координаты успешно переданы');
+                        notifyMessage({
+                            data: {
+                                notifyType: "success"
+                            },
+                            notification: {
+                                title: "Спасибо!",
+                                body: ""
+                            }
+                        });
+                        document.location.href = "";
+                    } else {
+                        onError('Нет связи');
+                        if (data.error) {
+                            notifyMessage({
+                                data: {
+                                    notifyType: "danger"
+                                },
+                                notification: {
+                                    title: "Ошибка!",
+                                    body: data.error
+                                }
+                            });
+                        }
+                        else {
+                            notifyMessage({
+                                data: {
+                                    notifyType: "danger"
+                                },
+                                notification: {
+                                    title: "Ошибка!",
+                                    body: "Передача невозможна"
+                                }
+                            });
+                        }
+                    }
+                    console.log(data); // JSON data parsed by `response.json()` call
+                });
         }
 
     ymaps.ready(init);
@@ -87,7 +119,6 @@
                  var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
                      '<div style="color: #FFFFFF; font-weight: bold;">$[properties.iconContent]</div>'
                  );
-
 
                     myMap.geoObjects.remove(myLocationCircle);
                       var myLocationCircle = new ymaps.Circle([

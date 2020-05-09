@@ -47,7 +47,19 @@ namespace service.Models
         public byte[] Data { get; set; }        
         public DeviceFileTypeEnum FileType { get; set; }
     }
-    
+    public class DeviceLocationInfo
+    {
+        public string DeviceId { get; set; }
+        public double Lat { get; set; }
+        public double Lon { get; set; }
+        public int Radius { get; set; }
+    }
+    public class AttachDeviceInfo
+    {
+        public string Phone { get; set; }
+        public string DeviceId { get; set; }
+        public bool AddQuarantine { get; set; }
+    }
     public enum DeviceFileTypeEnum : int { Jpeg = 1 };
     public enum ErrorCode : int { NotError = 0, NotQuarantine, NotDevice, FormatDeviceIdNotSupport, FormatTokenNotSupport, CoordinateFailed, AccessDeny, NotSupport };
 

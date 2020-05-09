@@ -22,9 +22,9 @@
             }),
             getPointData = function (timeInfo) {
                 return {
-                    hintContent: 'Место передачи координат(<strong> ' + timeInfo + '</strong >)',
-                    balloonContent: 'Место передачи координат (<strong>' + timeInfo + '</strong>)',
-                    clusterCaption: 'Место передачи координат (<strong>' + timeInfo + '</strong>)'
+                    hintContent: 'Место передачи координат',
+                    balloonContent: 'Место передачи координат',
+                    clusterCaption: 'Место передачи координат'
                 };
             },
             getPointOptions = function () {
@@ -34,13 +34,13 @@
             },
             geoObjects = [];
 
-        fetch('/Home/GetPersonsLastLocation')
+        fetch('/api/v1/Device/GetPersonsLastLocations')
             .then((response) => {
                 return response.json();
             })
             .then((points) => {
                 for (var i = 0, len = points.length; i < len; i++) {
-                    geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(points[i].timeInfo), getPointOptions());
+                    geoObjects[i] = new ymaps.Placemark([points[i].lat, points[i].lon], getPointData(i), getPointOptions());
                 }
 
                 clusterer.options.set({

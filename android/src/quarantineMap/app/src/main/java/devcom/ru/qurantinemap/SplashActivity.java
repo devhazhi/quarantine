@@ -61,6 +61,7 @@ public class SplashActivity extends AppCompatActivity implements NetworkInfoCall
                 }
                 startActivity(intent);
             }
+
         });
     }
 
